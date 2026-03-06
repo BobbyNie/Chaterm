@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22.x
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          NODE_OPTIONS: "--max-old-space-size=40960"
 
       - name: Fix package-lock.json
         run: node scripts/patch-package-lock.js
