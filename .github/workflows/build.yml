@@ -16,6 +16,9 @@ on:
           - cn
           - global
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -29,6 +32,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
+
+      - name: Set version to current date
+        run: |
+          $date = Get-Date -Format "yyyy.MM.dd"
+          npm version $date --no-git-tag-version
+          echo "BUILD_VERSION=$date" >> $env:GITHUB_ENV
+          echo "Build version: $date"
+        shell: pwsh
 
       - name: Fix package-lock.json
         run: node scripts/patch-package-lock.js
@@ -50,3 +61,21 @@ jobs:
           name: windows-build
           path: dist/
           retention-days: 7
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.BUILD_VERSION }}
+          name: Release ${{ env.BUILD_VERSION }}
+          body: |
+            Build date: ${{ env.BUILD_VERSION }}
+
+            ## Artifacts
+            - Windows installer (CN edition)
+          files: |
+            dist/cn/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
