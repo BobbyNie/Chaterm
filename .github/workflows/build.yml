@@ -45,19 +45,20 @@ jobs:
         run: |
           node -e "
           const fs = require('fs');
-          const path = 'resources/update-notes.json';
-          const notes = JSON.parse(fs.readFileSync(path, 'utf-8'));
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+          const notesPath = 'resources/update-notes.json';
+          const notes = JSON.parse(fs.readFileSync(notesPath, 'utf-8'));
           const today = new Date().toISOString().split('T')[0];
           notes.versions.unshift({
-            version: process.env.BUILD_VERSION,
+            version: pkg.version,
             date: today,
             highlights: {
               'zh-CN': ['CI Build - CI 自动构建版本'],
               'en-US': ['CI Build - Automated CI build']
             }
           });
-          fs.writeFileSync(path, JSON.stringify(notes, null, 2));
-          console.log('Added release notes for version:', process.env.BUILD_VERSION);
+          fs.writeFileSync(notesPath, JSON.stringify(notes, null, 2));
+          console.log('Added release notes for version:', pkg.version);
           "
 
       - name: Fix package-lock.json
@@ -105,19 +106,20 @@ jobs:
         run: |
           node -e "
           const fs = require('fs');
-          const path = 'resources/update-notes.json';
-          const notes = JSON.parse(fs.readFileSync(path, 'utf-8'));
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+          const notesPath = 'resources/update-notes.json';
+          const notes = JSON.parse(fs.readFileSync(notesPath, 'utf-8'));
           const today = new Date().toISOString().split('T')[0];
           notes.versions.unshift({
-            version: process.env.BUILD_VERSION,
+            version: pkg.version,
             date: today,
             highlights: {
               'zh-CN': ['CI Build - CI 自动构建版本'],
               'en-US': ['CI Build - Automated CI build']
             }
           });
-          fs.writeFileSync(path, JSON.stringify(notes, null, 2));
-          console.log('Added release notes for version:', process.env.BUILD_VERSION);
+          fs.writeFileSync(notesPath, JSON.stringify(notes, null, 2));
+          console.log('Added release notes for version:', pkg.version);
           "
 
       - name: Fix package-lock.json
