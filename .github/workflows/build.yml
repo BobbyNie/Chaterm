@@ -19,6 +19,8 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=6144"
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -27,8 +29,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
-        env:
-          NODE_OPTIONS: "--max-old-space-size=40960"
 
       - name: Fix package-lock.json
         run: node scripts/patch-package-lock.js
