@@ -10,26 +10,12 @@ Chaterm is an Electron-based AI-driven terminal tool that provides intelligent c
 
 - **Frontend Framework:** Vue 3 + TypeScript + Pinia + Vue Router + Vue I18n
 - **UI Components:** Ant Design Vue (auto-imported) + Monaco Editor + xterm.js
-- **Desktop Application:** Electron 30 + electron-vite + electron-builder
+- **Desktop Application:** Electron 40 + electron-vite + electron-builder
 - **Data Storage:** better-sqlite3 (local database) + migration system
 - **SSH/Terminal:** ssh2 + node-pty + custom SSH agent
 - **AI Integration:** Anthropic Claude + OpenAI + AWS Bedrock + Ollama
 - **Testing Framework:** Vitest (unit tests) + Playwright (E2E)
 - **Code Quality:** ESLint + Prettier + TypeScript + Husky (pre-commit hooks)
-
-## Edition Configuration
-
-The project supports two editions with separate build configurations:
-
-- **cn (Chinese):** Default edition for Chinese market
-- **global:** International edition
-
-Configuration files: `build/edition-config/{cn,global}.json`
-
-Use edition-specific commands for development and builds:
-- `npm run dev:cn` / `npm run dev:global`
-- `npm run build:cn` / `npm run build:global`
-- `npm run build:win:cn` / `npm run build:win:global`
 
 ## Core Architecture
 
@@ -80,9 +66,9 @@ Use edition-specific commands for development and builds:
 - `@integrations` → `src/main/agent/integrations`
 - `@utils` → `src/main/agent/utils`
 - `@api` → `src/main/agent/api`
-- `@storage` → `src/main/storage`
 - `@logging` → `src/main/services/logging`
 - `@perf` → `src/main/services/perf`
+- `@storage` → `src/main/storage` (tests only)
 
 **Renderer Process Aliases:**
 
@@ -108,7 +94,9 @@ npm install
 ### Development and Debugging
 
 ```bash
-npm run dev # Start development server (hot reload)
+npm run dev # Start development server (defaults to cn edition, hot reload)
+npm run dev:cn # Start development server (China edition)
+npm run dev:global # Start development server (Global edition)
 npm run dev:watch # Start development server (file watch mode)
 npm run start # Preview build results
 ```
@@ -127,36 +115,35 @@ npm run typecheck:web # Check renderer process types only
 ### Testing
 
 ```bash
-npm test                     # Vitest unit tests (watch mode)
-npm run test:main            # Run main process tests only
-npm run test:renderer        # Run renderer process tests only (jsdom)
-npm run test:browser         # Run renderer component tests (Playwright browser)
-npm run test:coverage        # Generate coverage report
-npm run test:coverage:main   # Coverage for main process
-npm run test:coverage:renderer # Coverage for renderer process
-npm run test:e2e             # Playwright E2E tests (headless)
-npm run test:e2e:headed      # Playwright E2E tests (with browser)
-npm run test:e2e:ui          # Playwright E2E tests (UI mode)
-
-# Run a single test file
-npx vitest run path/to/test.test.ts
+npm test # Vitest unit tests (watch mode)
+npm run test:main # Run main process tests only
+npm run test:renderer # Run renderer process tests only (jsdom)
+npm run test:browser # Run component tests in browser (Playwright)
+npm run test:coverage # Run tests with coverage report
+npm run test:e2e # Playwright E2E tests (headless)
+npm run test:e2e:headed # Playwright E2E tests (with browser)
+npm run test:e2e:ui # Playwright E2E tests (UI mode)
 ```
 
 ### Build and Package
 
+The project supports two editions: `cn` (China) and `global`. Most build commands have edition-specific variants.
+
 ```bash
-npm run build                # Build all source code (default: cn)
-npm run build:cn             # Build Chinese edition
-npm run build:global         # Build global edition
-npm run build:unpack:cn      # Build and unpack (cn, for verification)
-npm run build:unpack:global  # Build and unpack (global)
-npm run build:win:cn         # Build Windows installer (cn)
-npm run build:win:global     # Build Windows installer (global)
-npm run build:mac:cn         # Build macOS application (cn)
-npm run build:mac:global     # Build macOS application (global)
-npm run build:linux:cn       # Build Linux package (cn)
-npm run build:linux:global   # Build Linux package (global)
+npm run build # Build all source code (without packaging)
+npm run build:cn # Build for China edition
+npm run build:global # Build for Global edition
+npm run build:unpack:cn # Build and generate unpacked directory (China edition)
+npm run build:unpack:global # Build and generate unpacked directory (Global edition)
+npm run build:win:cn # Build Windows installer (China edition)
+npm run build:win:global # Build Windows installer (Global edition)
+npm run build:mac:cn # Build macOS application (China edition)
+npm run build:mac:global # Build macOS application (Global edition)
+npm run build:linux:cn # Build Linux package (China edition)
+npm run build:linux:global # Build Linux package (Global edition)
 ```
+
+Edition configuration files are located in `build/edition-config/` (`cn.json`, `global.json`).
 
 ## Development Standards and Constraints
 

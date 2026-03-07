@@ -1,13 +1,39 @@
-import { getUserInfo } from '@/utils/permission'
+import { getUserInfo, setUserInfo } from '@/utils/permission'
 import { dataSyncService } from '@/services/dataSyncService'
 
 const logger = createRendererLogger('router')
+
+// Auto-skip login for intranet use
+const autoSkipLogin = async () => {
+  localStorage.removeItem('ctm-token')
+  localStorage.removeItem('jms-token')
+  localStorage.removeItem('userInfo')
+  localStorage.setItem('login-skipped', 'true')
+  localStorage.setItem('ctm-token', 'guest_token')
+  const guestUserInfo = {
+    uid: 999999999,
+    username: 'guest',
+    name: 'Guest',
+    email: 'guest@chaterm.ai',
+    token: 'guest_token'
+  }
+  setUserInfo(guestUserInfo)
+  const api = window.api as any
+  const dbResult = await api.initUserDatabase({ uid: 999999999 })
+  return dbResult.success
+}
 
 export const beforeEach = async (to, _from, next) => {
   const token = localStorage.getItem('ctm-token')
   const isSkippedLogin = localStorage.getItem('login-skipped') === 'true'
   const isDev = import.meta.env.MODE === 'development'
   if (to.path === '/login') {
+    // Auto-skip login for intranet use
+    const success = await autoSkipLogin()
+    if (success) {
+      next('/')
+      return
+    }
     if (isSkippedLogin) {
       localStorage.removeItem('login-skipped')
       localStorage.removeItem('ctm-token')
@@ -82,7 +108,13 @@ export const beforeEach = async (to, _from, next) => {
       next('/login')
     }
   } else {
-    next('/login')
+    // Auto-skip login for intranet use - no token exists
+    const success = await autoSkipLogin()
+    if (success) {
+      next('/')
+    } else {
+      next('/login')
+    }
   }
 }
 
