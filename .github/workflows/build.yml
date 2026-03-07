@@ -41,6 +41,24 @@ jobs:
           echo "Build version: $date"
         shell: pwsh
 
+      - name: Add release notes for date version
+        run: |
+          $notesPath = "resources/update-notes.json"
+          $notes = Get-Content $notesPath | ConvertFrom-Json
+          $newVersion = @{
+            version = $env:BUILD_VERSION
+            date = Get-Date -Format "yyyy-MM-dd"
+            highlights = @{
+              "zh-CN" = @("CI Build - CI 自动构建版本")
+              "en-US" = @("CI Build - Automated CI build")
+            }
+          }
+          # Add new version at the beginning of versions array
+          $notes.versions = @($newVersion) + $notes.versions
+          $notes | ConvertTo-Json -Depth 10 | Set-Content $notesPath
+          Write-Host "Added release notes for version: $env:BUILD_VERSION"
+        shell: pwsh
+
       - name: Fix package-lock.json
         run: node scripts/patch-package-lock.js
 
