@@ -43,20 +43,22 @@ jobs:
 
       - name: Add release notes for date version
         run: |
-          $notesPath = "resources/update-notes.json"
-          $notes = Get-Content $notesPath | ConvertFrom-Json
-          $newVersion = @{
-            version = $env:BUILD_VERSION
-            date = Get-Date -Format "yyyy-MM-dd"
-            highlights = @{
-              "zh-CN" = @("CI Build - CI 自动构建版本")
-              "en-US" = @("CI Build - Automated CI build")
+          node -e "
+          const fs = require('fs');
+          const path = 'resources/update-notes.json';
+          const notes = JSON.parse(fs.readFileSync(path, 'utf-8'));
+          const today = new Date().toISOString().split('T')[0];
+          notes.versions.unshift({
+            version: process.env.BUILD_VERSION,
+            date: today,
+            highlights: {
+              'zh-CN': ['CI Build - CI 自动构建版本'],
+              'en-US': ['CI Build - Automated CI build']
             }
-          }
-          $notes.versions = @($newVersion) + $notes.versions
-          $notes | ConvertTo-Json -Depth 10 | Set-Content $notesPath
-          Write-Host "Added release notes for version: $env:BUILD_VERSION"
-        shell: pwsh
+          });
+          fs.writeFileSync(path, JSON.stringify(notes, null, 2));
+          console.log('Added release notes for version:', process.env.BUILD_VERSION);
+          "
 
       - name: Fix package-lock.json
         run: node scripts/patch-package-lock.js
@@ -101,13 +103,22 @@ jobs:
 
       - name: Add release notes for date version
         run: |
-          notes_path="resources/update-notes.json"
-          date_str=$(date +%Y-%m-%d)
-          version="$BUILD_VERSION"
-          jq --arg ver "$version" --arg date "$date_str" \
-            '.versions = [{"version": $ver, "date": $date, "highlights": {"zh-CN": ["CI Build - CI 自动构建版本"], "en-US": ["CI Build - Automated CI build"]}}] + .versions' \
-            "$notes_path" > tmp.json && mv tmp.json "$notes_path"
-          echo "Added release notes for version: $version"
+          node -e "
+          const fs = require('fs');
+          const path = 'resources/update-notes.json';
+          const notes = JSON.parse(fs.readFileSync(path, 'utf-8'));
+          const today = new Date().toISOString().split('T')[0];
+          notes.versions.unshift({
+            version: process.env.BUILD_VERSION,
+            date: today,
+            highlights: {
+              'zh-CN': ['CI Build - CI 自动构建版本'],
+              'en-US': ['CI Build - Automated CI build']
+            }
+          });
+          fs.writeFileSync(path, JSON.stringify(notes, null, 2));
+          console.log('Added release notes for version:', process.env.BUILD_VERSION);
+          "
 
       - name: Fix package-lock.json
         run: node scripts/patch-package-lock.js
