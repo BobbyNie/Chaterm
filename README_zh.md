@@ -68,6 +68,32 @@ Chaterm是一款AI原生的智能终端Agent，旨在通过自然语言交互重
 
 ![Preview image](resources/features.webp)
 
+## 内网版本说明
+
+本项目 Fork 自 [chaterm/Chaterm](https://github.com/chaterm/Chaterm)，针对内网使用场景进行了以下优化：
+
+### 主要修改
+
+| 类别 | 修改内容 |
+|------|----------|
+| 登录系统 | 移除登录页面，应用启动直接进入功能区 |
+| 用户菜单 | 移除左侧栏用户头像和登录/登出菜单 |
+| 计费功能 | 移除设置中的"计费概览"标签页 |
+| AI 标签 | 无可用模型时只显示"配置模型"按钮，移除登录提示 |
+| CI/CD | 新增 GitHub Actions 自动构建 Windows 和 macOS 安装包 |
+| 版本管理 | 使用日期格式 (yyyy.MM.dd) 作为版本号，自动创建 GitHub Release |
+
+### 自动构建产物
+
+- Windows: `chaterm-{date}-cn-setup-x64.exe`
+- macOS ARM64: `chaterm-{date}-cn-macos-arm64.zip`
+- macOS x64: `chaterm-{date}-cn-macos-x64.zip`
+
+### 快速开始
+
+1. 配置 AI 模型：进入设置 → 模型配置，添加本地模型或 Ollama 等服务
+2. 开始使用：无需登录，直接使用 AI 终端功能
+
 ## 开发指南
 
 ### Install Electron

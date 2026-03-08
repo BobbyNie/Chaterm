@@ -133,7 +133,6 @@ import {
 import { getLastNonEmptyLine, isTerminalPromptLine } from './utils/terminalPrompt'
 import { useDeviceStore } from '@/store/useDeviceStore'
 import { isFocusInAiTab } from '@/utils/domUtils'
-import { checkUserDevice } from '@api/user/user'
 import { keywordHighlightService } from '@/services/keywordHighlightService'
 import { useZmodem } from './utils/chatermZmodem'
 
@@ -408,17 +407,6 @@ let config
 const deviceStore = useDeviceStore()
 const isOfficeDevice = ref(false)
 const isLocalConnect = ref(false)
-
-const getUserInfo = async () => {
-  try {
-    const res = (await checkUserDevice({ ip: deviceStore.getDeviceIp, macAddress: deviceStore.getMacAddress })) as any
-    if (res && res.code === 200) {
-      isOfficeDevice.value = res.data.isOfficeDevice
-    }
-  } catch (error) {
-    logger.error('Failed to get user info', { error: error })
-  }
-}
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
 
 const handleMetaKeyDown = (e: KeyboardEvent) => {
@@ -434,7 +422,6 @@ const handleMetaKeyUp = (e: KeyboardEvent) => {
 }
 
 onMounted(async () => {
-  await getUserInfo()
   config = await serviceUserConfig.getConfig()
   dbConfigStash = config
   queryCommandFlag.value = config.autoCompleteStatus == 1

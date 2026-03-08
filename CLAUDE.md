@@ -4,13 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
+**This is an intranet edition** forked from [chaterm/Chaterm](https://github.com/chaterm/Chaterm), modified for internal network deployment without cloud service dependencies.
+
 Chaterm is an Electron-based AI-driven terminal tool that provides intelligent command completion, multi-device management, AI Agent capabilities, and enterprise-grade security features.
+
+### Intranet Edition Modifications
+
+| Category | Changes |
+|----------|---------|
+| Login System | Removed login page, app starts directly to main interface with guest user (uid: 999999999) |
+| User Menu | Removed user avatar and login/logout menu from sidebar |
+| Billing | Removed billing tab from settings |
+| AI Tab | Only shows "Configure Model" button when no models available, removed login prompt |
+| CI/CD | Added GitHub Actions for automated Windows and macOS builds |
+| Versioning | Uses date format (yyyy.MM.dd) as version number, auto-creates GitHub Release |
+
+### Key Files Modified for Intranet Use
+
+- `src/renderer/src/router/guards.ts` - Auto-skip login, use guest user
+- `src/renderer/src/views/components/LeftTab/index.vue` - Removed user menu
+- `src/renderer/src/views/components/LeftTab/constants/data.ts` - Removed user menu item
+- `src/renderer/src/views/components/LeftTab/config/userConfig.vue` - Removed billing tab
+- `src/renderer/src/views/components/AiTab/index.vue` - Removed login prompt
+- `.github/workflows/build.yml` - CI/CD pipeline for builds
 
 **Tech Stack:**
 
 - **Frontend Framework:** Vue 3 + TypeScript + Pinia + Vue Router + Vue I18n
 - **UI Components:** Ant Design Vue (auto-imported) + Monaco Editor + xterm.js
-- **Desktop Application:** Electron 30 + electron-vite + electron-builder
+- **Desktop Application:** Electron 40 + electron-vite + electron-builder
 - **Data Storage:** better-sqlite3 (local database) + migration system
 - **SSH/Terminal:** ssh2 + node-pty + custom SSH agent
 - **AI Integration:** Anthropic Claude + OpenAI + AWS Bedrock + Ollama
@@ -66,6 +88,9 @@ Chaterm is an Electron-based AI-driven terminal tool that provides intelligent c
 - `@integrations` → `src/main/agent/integrations`
 - `@utils` → `src/main/agent/utils`
 - `@api` → `src/main/agent/api`
+- `@logging` → `src/main/services/logging`
+- `@perf` → `src/main/services/perf`
+- `@storage` → `src/main/storage` (tests only)
 
 **Renderer Process Aliases:**
 
@@ -91,7 +116,9 @@ npm install
 ### Development and Debugging
 
 ```bash
-npm run dev # Start development server (hot reload)
+npm run dev # Start development server (defaults to cn edition, hot reload)
+npm run dev:cn # Start development server (China edition)
+npm run dev:global # Start development server (Global edition)
 npm run dev:watch # Start development server (file watch mode)
 npm run start # Preview build results
 ```
@@ -111,6 +138,10 @@ npm run typecheck:web # Check renderer process types only
 
 ```bash
 npm test # Vitest unit tests (watch mode)
+npm run test:main # Run main process tests only
+npm run test:renderer # Run renderer process tests only (jsdom)
+npm run test:browser # Run component tests in browser (Playwright)
+npm run test:coverage # Run tests with coverage report
 npm run test:e2e # Playwright E2E tests (headless)
 npm run test:e2e:headed # Playwright E2E tests (with browser)
 npm run test:e2e:ui # Playwright E2E tests (UI mode)
@@ -118,13 +149,23 @@ npm run test:e2e:ui # Playwright E2E tests (UI mode)
 
 ### Build and Package
 
+The project supports two editions: `cn` (China) and `global`. Most build commands have edition-specific variants.
+
 ```bash
 npm run build # Build all source code (without packaging)
-npm run build:unpack # Build and generate unpacked directory (for verification)
-npm run build:win # Build Windows installer
-npm run build:mac # Build macOS application
-npm run build:linux # Build Linux package
+npm run build:cn # Build for China edition
+npm run build:global # Build for Global edition
+npm run build:unpack:cn # Build and generate unpacked directory (China edition)
+npm run build:unpack:global # Build and generate unpacked directory (Global edition)
+npm run build:win:cn # Build Windows installer (China edition)
+npm run build:win:global # Build Windows installer (Global edition)
+npm run build:mac:cn # Build macOS application (China edition)
+npm run build:mac:global # Build macOS application (Global edition)
+npm run build:linux:cn # Build Linux package (China edition)
+npm run build:linux:global # Build Linux package (Global edition)
 ```
+
+Edition configuration files are located in `build/edition-config/` (`cn.json`, `global.json`).
 
 ## Development Standards and Constraints
 

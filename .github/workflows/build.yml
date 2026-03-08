@@ -1,0 +1,202 @@
+name: Build
+
+on:
+  push:
+    branches: [main, boc_intranet]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      edition:
+        description: 'Edition to build (cn or global)'
+        required: true
+        default: 'cn'
+        type: choice
+        options:
+          - cn
+          - global
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+
+      - name: Set version to current date
+        run: |
+          $date = Get-Date -Format "yyyy.MM.dd"
+          npm version $date --no-git-tag-version
+          echo "BUILD_VERSION=$date" >> $env:GITHUB_ENV
+          echo "Build version: $date"
+        shell: pwsh
+
+      - name: Add release notes for date version
+        run: |
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+          const notesPath = 'resources/update-notes.json';
+          const notes = JSON.parse(fs.readFileSync(notesPath, 'utf-8'));
+          const today = new Date().toISOString().split('T')[0];
+          notes.versions.unshift({
+            version: pkg.version,
+            date: today,
+            highlights: {
+              'zh-CN': ['CI Build - CI 自动构建版本'],
+              'en-US': ['CI Build - Automated CI build']
+            }
+          });
+          fs.writeFileSync(notesPath, JSON.stringify(notes, null, 2));
+          console.log('Added release notes for version:', pkg.version);
+          "
+
+      - name: Fix package-lock.json
+        run: node scripts/patch-package-lock.js
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Build Windows (CN)
+        if: github.event.inputs.edition == 'cn' || github.event.inputs.edition == ''
+        run: npm run build:win:cn
+
+      - name: Build Windows (Global)
+        if: github.event.inputs.edition == 'global'
+        run: npm run build:win:global
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-build
+          path: dist/
+          retention-days: 7
+
+  build-mac-arm64:
+    runs-on: macos-14
+    env:
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+
+      - name: Clear electron-builder cache
+        run: rm -rf ~/Library/Caches/electron-builder
+
+      - name: Set version to current date
+        run: |
+          date=$(date +%Y.%m.%d)
+          npm version $date --no-git-tag-version
+          echo "BUILD_VERSION=$date" >> $GITHUB_ENV
+          echo "Build version: $date"
+
+      - name: Add release notes for date version
+        run: |
+          node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+          const notesPath = 'resources/update-notes.json';
+          const notes = JSON.parse(fs.readFileSync(notesPath, 'utf-8'));
+          const today = new Date().toISOString().split('T')[0];
+          notes.versions.unshift({
+            version: pkg.version,
+            date: today,
+            highlights: {
+              'zh-CN': ['CI Build - CI 自动构建版本'],
+              'en-US': ['CI Build - Automated CI build']
+            }
+          });
+          fs.writeFileSync(notesPath, JSON.stringify(notes, null, 2));
+          console.log('Added release notes for version:', pkg.version);
+          "
+
+      - name: Fix package-lock.json
+        run: node scripts/patch-package-lock.js
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Build macOS ARM64 (CN)
+        if: github.event.inputs.edition == 'cn' || github.event.inputs.edition == ''
+        run: npm run build:mac:cn
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
+
+      - name: Build macOS ARM64 (Global)
+        if: github.event.inputs.edition == 'global'
+        run: npm run build:mac:global
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-arm64-build
+          path: dist/
+          retention-days: 7
+
+  create-release:
+    needs: [build-windows, build-mac-arm64]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Set version
+        run: |
+          date=$(date +%Y.%m.%d)
+          echo "BUILD_VERSION=$date" >> $GITHUB_ENV
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: dist/windows
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-arm64-build
+          path: dist/macos
+
+      - name: List artifacts
+        run: |
+          echo "Windows artifacts:"
+          ls -la dist/windows/ || true
+          ls -la dist/windows/cn/ || true
+          echo "macOS artifacts:"
+          ls -la dist/macos/ || true
+          ls -la dist/macos/cn/ || true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.BUILD_VERSION }}
+          name: Release ${{ env.BUILD_VERSION }}
+          body: |
+            Build date: ${{ env.BUILD_VERSION }}
+
+            ## Artifacts
+            - Windows installer (CN edition)
+            - macOS Apple Silicon (CN edition)
+          files: |
+            dist/windows/cn/*.exe
+            dist/macos/cn/*.dmg
+            dist/macos/cn/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
