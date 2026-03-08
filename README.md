@@ -54,6 +54,32 @@ With its built-in expert knowledge base and powerful agent inference capabilitie
 
 ![Preview image](resources/features.webp)
 
+## Intranet Edition Notes
+
+This project is forked from [chaterm/Chaterm](https://github.com/chaterm/Chaterm) with the following modifications for intranet deployment:
+
+### Key Modifications
+
+| Category | Changes |
+|----------|---------|
+| Login System | Removed login page, app starts directly to main interface |
+| User Menu | Removed user avatar and login/logout menu from sidebar |
+| Billing | Removed billing tab from settings |
+| AI Tab | Only shows "Configure Model" button when no models available, removed login prompt |
+| CI/CD | Added GitHub Actions for automated Windows and macOS builds |
+| Versioning | Uses date format (yyyy.MM.dd) as version number, auto-creates GitHub Release |
+
+### Build Artifacts
+
+- Windows: `chaterm-{date}-cn-setup-x64.exe`
+- macOS ARM64: `chaterm-{date}-cn-macos-arm64.zip`
+- macOS x64: `chaterm-{date}-cn-macos-x64.zip`
+
+### Quick Start
+
+1. Configure AI Model: Go to Settings → Models, add local model or Ollama service
+2. Start Using: No login required, use AI terminal features directly
+
 ## Development Guide
 
 ### Install Electron
