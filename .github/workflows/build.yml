@@ -83,7 +83,7 @@ jobs:
           retention-days: 7
 
   build-mac-arm64:
-    runs-on: macos-14
+    runs-on: macos-13
     env:
       NODE_OPTIONS: "--max-old-space-size=6144"
     steps:
@@ -94,6 +94,9 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22.x
+
+      - name: Clear electron-builder cache
+        run: rm -rf ~/Library/Caches/electron-builder
 
       - name: Set version to current date
         run: |
@@ -131,10 +134,14 @@ jobs:
       - name: Build macOS ARM64 (CN)
         if: github.event.inputs.edition == 'cn' || github.event.inputs.edition == ''
         run: npm run build:mac:cn
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
 
       - name: Build macOS ARM64 (Global)
         if: github.event.inputs.edition == 'global'
         run: npm run build:mac:global
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "true"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
@@ -188,6 +195,7 @@ jobs:
           files: |
             dist/windows/cn/*.exe
             dist/macos/cn/*.dmg
+            dist/macos/cn/*.zip
           draft: false
           prerelease: false
         env:
