@@ -4,7 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
+**This is an intranet edition** forked from [chaterm/Chaterm](https://github.com/chaterm/Chaterm), modified for internal network deployment without cloud service dependencies.
+
 Chaterm is an Electron-based AI-driven terminal tool that provides intelligent command completion, multi-device management, AI Agent capabilities, and enterprise-grade security features.
+
+### Intranet Edition Modifications
+
+| Category | Changes |
+|----------|---------|
+| Login System | Removed login page, app starts directly to main interface with guest user (uid: 999999999) |
+| User Menu | Removed user avatar and login/logout menu from sidebar |
+| Billing | Removed billing tab from settings |
+| AI Tab | Only shows "Configure Model" button when no models available, removed login prompt |
+| CI/CD | Added GitHub Actions for automated Windows and macOS builds |
+| Versioning | Uses date format (yyyy.MM.dd) as version number, auto-creates GitHub Release |
+
+### Key Files Modified for Intranet Use
+
+- `src/renderer/src/router/guards.ts` - Auto-skip login, use guest user
+- `src/renderer/src/views/components/LeftTab/index.vue` - Removed user menu
+- `src/renderer/src/views/components/LeftTab/constants/data.ts` - Removed user menu item
+- `src/renderer/src/views/components/LeftTab/config/userConfig.vue` - Removed billing tab
+- `src/renderer/src/views/components/AiTab/index.vue` - Removed login prompt
+- `.github/workflows/build.yml` - CI/CD pipeline for builds
 
 **Tech Stack:**
 
