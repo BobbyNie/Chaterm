@@ -2841,6 +2841,9 @@ export class Task {
         telemetryService.captureTaskCompleted(this.taskId)
       }
 
+      // Auto-complete all in_progress todos when task is completed
+      await this.completeAllInProgressTodos()
+
       const { response, text, contentParts } = await this.ask('completion_result', '', false)
       if (response === 'yesButtonClicked') {
         this.pushToolResult(toolDescription, '')
@@ -4177,6 +4180,58 @@ USERNAME:${localSystemInfo.userName}`
     } catch (error) {
       logger.error('[Smart Todo] Failed to check and create todo if needed', { error: error })
       // 不影响主要功能，只记录错误
+    }
+  }
+
+  // Complete all in_progress todos when task is completed
+  private async completeAllInProgressTodos(): Promise<void> {
+    try {
+      const { TodoStorage } = await import('../storage/todo/TodoStorage')
+      const storage = new TodoStorage(this.taskId)
+      const todos = await storage.readTodos()
+
+      if (todos.length === 0) {
+        return
+      }
+
+      // Find all in_progress todos
+      const inProgressTodos = todos.filter((todo) => todo.status === 'in_progress')
+
+      if (inProgressTodos.length === 0) {
+        return
+      }
+
+      // Mark all in_progress todos as completed
+      const now = new Date()
+      const updatedTodos = todos.map((todo) => {
+        if (todo.status === 'in_progress') {
+          return {
+            ...todo,
+            status: 'completed' as const,
+            completedAt: now,
+            updatedAt: now,
+            isFocused: false
+          }
+        }
+        return todo
+      })
+
+      // Save updated todos
+      await storage.writeTodos(updatedTodos)
+
+      // Send todo update event to renderer process
+      await this.postMessageToWebview({
+        type: 'todoUpdated',
+        todos: updatedTodos,
+        sessionId: this.taskId,
+        taskId: this.taskId,
+        changeType: 'completed',
+        triggerReason: 'agent_update'
+      })
+
+      logger.info(`[Task] Auto-completed ${inProgressTodos.length} in_progress todos for task ${this.taskId}`)
+    } catch (error) {
+      logger.error('[Task] Failed to complete in_progress todos', { error: error })
     }
   }
 
