@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, boc_intranet]
+    branches: [main, intranet]
   pull_request:
     branches: [main]
   workflow_dispatch:
