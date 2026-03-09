@@ -32,9 +32,6 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
 
-dmg:
-  artifactName: ${name}-${version}-cn-macos-${arch}.${ext}
-
 mac:
   artifactName: ${name}-${version}-cn-macos-${arch}.${ext}
   target:

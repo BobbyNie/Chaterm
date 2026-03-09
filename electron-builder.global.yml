@@ -29,11 +29,13 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
 
-dmg:
-  artifactName: ${name}-${version}-macos-${arch}.${ext}
-
 mac:
   artifactName: ${name}-${version}-macos-${arch}.${ext}
+  target:
+    - target: zip
+      arch:
+        - x64
+        - arm64
   protocols:
     - name: Chaterm
       schemes:

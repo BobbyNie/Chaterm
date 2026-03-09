@@ -194,7 +194,6 @@ jobs:
             - macOS Apple Silicon (CN edition)
           files: |
             dist/windows/cn/*.exe
-            dist/macos/cn/*.dmg
             dist/macos/cn/*.zip
           draft: false
           prerelease: false
