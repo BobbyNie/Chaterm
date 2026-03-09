@@ -812,6 +812,137 @@ describe('LocalTerminalManager', () => {
       })
     })
 
+    describe('PowerShell && operator conversion', () => {
+      beforeEach(() => {
+        ;(os.platform as any).mockReturnValue('win32')
+      })
+
+      it('should convert simple && chain to PowerShell conditional syntax', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "first" && echo "second"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should contain conditional execution instead of &&
+        expect(command).not.toContain('&&')
+        expect(command).toContain('if ($?)')
+        expect(command).toContain('echo "first"')
+        expect(command).toContain('echo "second"')
+      })
+
+      it('should handle multiple && operators', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'cmd1 && cmd2 && cmd3')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should have two conditional blocks
+        const conditionalCount = (command.match(/if \(\$\?\)/g) || []).length
+        expect(conditionalCount).toBe(2)
+      })
+
+      it('should preserve && inside quoted strings', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "a && b" && echo "c"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // The quoted && should be preserved
+        expect(command).toContain('"a && b"')
+        // But the command separator && should be converted
+        expect(command).toContain('if ($?)')
+      })
+
+      it('should handle && with single quoted strings', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, "echo 'a && b' && echo 'c'")
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // The quoted && should be preserved
+        expect(command).toContain("'a && b'")
+        // But the command separator && should be converted
+        expect(command).toContain('if ($?)')
+      })
+
+      it('should not modify commands without &&', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "hello world"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should contain the original command (minus encoding prefix)
+        expect(command).toContain('echo "hello world"')
+        expect(command).not.toContain('if ($?)')
+      })
+
+      it('should add UTF-8 input encoding for PowerShell', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo test')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should include both output and input encoding
+        expect(command).toContain('[Console]::OutputEncoding')
+        expect(command).toContain('[Console]::InputEncoding')
+        expect(command).toContain('$OutputEncoding')
+      })
+    })
+
     describe('Output decoding', () => {
       it('should decode PowerShell output as UTF-8', () => {
         const terminal: LocalTerminalInfo = {

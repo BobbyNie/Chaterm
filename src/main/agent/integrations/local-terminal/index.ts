@@ -278,6 +278,59 @@ export class LocalTerminalManager {
   }
 
   /**
+   * Convert bash-style && chains to PowerShell compatible syntax
+   * PowerShell 5.1 doesn't support &&, so we convert to ; with conditional execution
+   */
+  private convertAndOperatorForPowerShell(command: string): string {
+    // PowerShell 7+ supports &&, but PowerShell 5.1 doesn't
+    // Convert "cmd1 && cmd2" to "cmd1; if ($?) { cmd2 }"
+    // This preserves the semantics of && (only run if previous succeeded)
+
+    // Split by && but be careful about quoted strings
+    const parts: string[] = []
+    let current = ''
+    let inSingleQuote = false
+    let inDoubleQuote = false
+    let i = 0
+
+    while (i < command.length) {
+      const char = command[i]
+      const nextChar = command[i + 1]
+
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote
+        current += char
+      } else if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote
+        current += char
+      } else if (char === '&' && nextChar === '&' && !inSingleQuote && !inDoubleQuote) {
+        // Found && outside of quotes
+        parts.push(current.trim())
+        current = ''
+        i++ // Skip the second &
+      } else {
+        current += char
+      }
+      i++
+    }
+
+    if (current.trim()) {
+      parts.push(current.trim())
+    }
+
+    if (parts.length <= 1) {
+      return command // No && found, return original
+    }
+
+    // Build PowerShell equivalent using $? (last command success)
+    let result = parts[0]
+    for (let j = 1; j < parts.length; j++) {
+      result += `; if ($?) { ${parts[j]} }`
+    }
+    return result
+  }
+
+  /**
    * Translate Unix commands to Windows PowerShell equivalents
    * This ensures Unix-style commands work on Windows PowerShell
    */
@@ -355,9 +408,12 @@ export class LocalTerminalManager {
       } else {
         // PowerShell - translate Unix commands and set UTF-8 output encoding
         finalCommand = this.translateCommandForPowerShell(command)
-        // Prepend UTF-8 output encoding setup to ensure PowerShell outputs UTF-8
+        // Convert bash-style && chains to PowerShell compatible syntax
+        // PowerShell 5.1 doesn't support &&, so we convert to conditional execution
+        finalCommand = this.convertAndOperatorForPowerShell(finalCommand)
+        // Prepend UTF-8 encoding setup to ensure PowerShell uses UTF-8 for both input and output
         // This solves encoding issues on non-English Windows systems (e.g., Traditional Chinese uses Big5 by default)
-        finalCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ${finalCommand}`
+        finalCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; ${finalCommand}`
         shellArgs = ['-Command', finalCommand]
       }
     } else {
