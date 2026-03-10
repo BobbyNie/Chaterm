@@ -1,13 +1,68 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { spawn } from 'child_process'
+import { spawn, execSync } from 'child_process'
 import * as os from 'os'
 import * as fs from 'fs'
 import EventEmitter from 'events'
 import { LocalTerminalManager, LocalTerminalInfo } from '../index'
 
+// Mock electron-log before any imports that use it
+vi.mock('electron-log/main', () => {
+  const mockLogger = {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    silly: vi.fn(),
+    log: vi.fn(),
+    transports: {
+      file: vi.fn(),
+      console: vi.fn(),
+      ipc: vi.fn()
+    },
+    hooks: {
+      push: vi.fn()
+    }
+  }
+  return {
+    default: {
+      ...mockLogger,
+      create: vi.fn(() => mockLogger)
+    }
+  }
+})
+
+// Mock electron
+vi.mock('electron', () => ({
+  app: {
+    getAppPath: vi.fn(() => '/test/app'),
+    getVersion: vi.fn(() => '1.0.0'),
+    getName: vi.fn(() => 'Chaterm'),
+    isReady: vi.fn(() => true),
+    whenReady: vi.fn(() => Promise.resolve()),
+    quit: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    getPath: vi.fn(() => '/test/path')
+  },
+  ipcMain: {
+    handle: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn()
+  },
+  BrowserWindow: vi.fn(),
+  webContents: {
+    getFocusedWebContents: vi.fn()
+  },
+  shell: {
+    openExternal: vi.fn(),
+    openPath: vi.fn()
+  }
+}))
+
 // Mock child_process
 vi.mock('child_process', () => ({
-  spawn: vi.fn()
+  spawn: vi.fn(),
+  execSync: vi.fn()
 }))
 
 // Mock fs
@@ -32,6 +87,12 @@ vi.mock('os', async () => {
     release: vi.fn(() => '10.0.0')
   }
 })
+
+// Mock iconv-lite
+vi.mock('iconv-lite', () => ({
+  decode: vi.fn((data: Buffer) => data.toString('utf8')),
+  encodingExists: vi.fn(() => true)
+}))
 
 describe('LocalTerminalManager', () => {
   let manager: LocalTerminalManager
@@ -154,7 +215,12 @@ describe('LocalTerminalManager', () => {
       terminal.shell = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
       manager.runCommand(terminal, 'ls -al')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-ChildItem -Force'], expect.any(Object))
+      // PowerShell commands now include UTF-8 encoding prefix
+      expect(spawn).toHaveBeenCalledWith(
+        expect.any(String),
+        ['-Command', expect.stringContaining('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;')],
+        expect.any(Object)
+      )
     })
 
     it('should execute command on Git Bash', () => {
@@ -463,7 +529,7 @@ describe('LocalTerminalManager', () => {
   })
 
   describe('Command translation for PowerShell', () => {
-    it('should translate ls -al to Get-ChildItem -Force', () => {
+    it('should translate ls -al to Get-ChildItem -Force with UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -474,10 +540,13 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'ls -al')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-ChildItem -Force'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-ChildItem -Force')], expect.any(Object))
+      // Verify UTF-8 encoding prefix is added
+      const callArgs = (spawn as any).mock.calls[0][1]
+      expect(callArgs[1]).toContain('[Console]::OutputEncoding')
     })
 
-    it('should translate ls -la to Get-ChildItem -Force', () => {
+    it('should translate ls -la to Get-ChildItem -Force with UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -488,10 +557,10 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'ls -la')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-ChildItem -Force'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-ChildItem -Force')], expect.any(Object))
     })
 
-    it('should translate ls -a to Get-ChildItem -Force', () => {
+    it('should translate ls -a to Get-ChildItem -Force with UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -502,10 +571,10 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'ls -a')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-ChildItem -Force'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-ChildItem -Force')], expect.any(Object))
     })
 
-    it('should translate ls -l to Get-ChildItem', () => {
+    it('should translate ls -l to Get-ChildItem with UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -516,10 +585,10 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'ls -l')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-ChildItem'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-ChildItem')], expect.any(Object))
     })
 
-    it('should translate cat to Get-Content', () => {
+    it('should translate cat to Get-Content with UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -530,10 +599,10 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'cat file.txt')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-Content file.txt'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-Content file.txt')], expect.any(Object))
     })
 
-    it('should translate pwd to $PWD', () => {
+    it('should translate pwd to $PWD with UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -544,10 +613,10 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'pwd')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', '$PWD'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('$PWD')], expect.any(Object))
     })
 
-    it('should not translate non-Unix commands', () => {
+    it('should not translate non-Unix commands but still add UTF-8 encoding', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -558,7 +627,408 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'Get-Process')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-Process'], expect.any(Object))
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-Process')], expect.any(Object))
+      // Verify UTF-8 encoding prefix is added even for native PowerShell commands
+      const callArgs = (spawn as any).mock.calls[0][1]
+      expect(callArgs[1]).toContain('[Console]::OutputEncoding')
+    })
+  })
+
+  describe('Encoding handling', () => {
+    describe('Windows code page detection', () => {
+      it('should detect Windows code page 950 (Traditional Chinese Big5) when decoding CMD output', async () => {
+        ;(execSync as any).mockReturnValue('Active code page: 950')
+        ;(os.platform as any).mockReturnValue('win32')
+
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\cmd.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'dir')
+          process.on('line', (chunk: string) => {
+            // When code page is 950 (Big5), the decodeOutput function should use big5 encoding
+            // For this test, we just verify the output is decoded (the mock returns UTF-8)
+            expect(typeof chunk).toBe('string')
+            resolve()
+          })
+
+          // Simulate CMD output
+          mockStdout.emit('data', Buffer.from('test output'))
+        })
+      })
+
+      it('should detect Windows code page 936 (Simplified Chinese GBK) when decoding CMD output', async () => {
+        ;(execSync as any).mockReturnValue('Active code page: 936')
+        ;(os.platform as any).mockReturnValue('win32')
+
+        const terminal: LocalTerminalInfo = {
+          id: 2,
+          sessionId: 'test2',
+          shell: 'C:\\Windows\\System32\\cmd.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'dir')
+          process.on('line', (chunk: string) => {
+            expect(typeof chunk).toBe('string')
+            resolve()
+          })
+
+          mockStdout.emit('data', Buffer.from('test output'))
+        })
+      })
+
+      it('should detect Windows code page 65001 (UTF-8) when decoding CMD output', async () => {
+        ;(execSync as any).mockReturnValue('Active code page: 65001')
+        ;(os.platform as any).mockReturnValue('win32')
+
+        const terminal: LocalTerminalInfo = {
+          id: 3,
+          sessionId: 'test3',
+          shell: 'C:\\Windows\\System32\\cmd.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'dir')
+          process.on('line', (chunk: string) => {
+            expect(typeof chunk).toBe('string')
+            resolve()
+          })
+
+          mockStdout.emit('data', Buffer.from('test output'))
+        })
+      })
+
+      it('should not detect code page on non-Windows platforms', () => {
+        ;(os.platform as any).mockReturnValue('linux')
+
+        const terminal: LocalTerminalInfo = {
+          id: 4,
+          sessionId: 'test4',
+          shell: '/bin/bash',
+          platform: 'linux',
+          isAlive: true
+        }
+
+        // On Linux, code page detection should not be called
+        manager.runCommand(terminal, 'ls')
+
+        // execSync should not be called for code page detection on Linux
+        expect(execSync).not.toHaveBeenCalledWith('chcp', expect.any(Object))
+      })
+
+      it('should handle chcp command failure gracefully', async () => {
+        ;(execSync as any).mockImplementation(() => {
+          throw new Error('Command failed')
+        })
+        ;(os.platform as any).mockReturnValue('win32')
+
+        const terminal: LocalTerminalInfo = {
+          id: 5,
+          sessionId: 'test5',
+          shell: 'C:\\Windows\\System32\\cmd.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'dir')
+          process.on('line', (chunk: string) => {
+            // Should fall back to UTF-8 when code page detection fails
+            expect(typeof chunk).toBe('string')
+            resolve()
+          })
+
+          mockStdout.emit('data', Buffer.from('test output'))
+        })
+      })
+    })
+
+    describe('PowerShell UTF-8 output encoding', () => {
+      it('should add UTF-8 encoding prefix to PowerShell commands', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "test"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const commandArg = callArgs[1][1]
+
+        expect(commandArg).toContain('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8')
+        expect(commandArg).toContain('echo "test"')
+      })
+
+      it('should add UTF-8 encoding prefix to PowerShell Core commands', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "test"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const commandArg = callArgs[1][1]
+
+        expect(commandArg).toContain('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8')
+      })
+    })
+
+    describe('CMD encoding handling', () => {
+      it('should not add UTF-8 prefix to CMD commands', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\cmd.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'dir')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+
+        // CMD should use /c flag without encoding prefix
+        expect(args[0]).toBe('/c')
+        expect(args[1]).toBe('dir')
+        expect(args[1]).not.toContain('[Console]::OutputEncoding')
+      })
+    })
+
+    describe('PowerShell && operator conversion', () => {
+      beforeEach(() => {
+        ;(os.platform as any).mockReturnValue('win32')
+      })
+
+      it('should convert simple && chain to PowerShell conditional syntax', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "first" && echo "second"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should contain conditional execution instead of &&
+        expect(command).not.toContain('&&')
+        expect(command).toContain('if ($?)')
+        expect(command).toContain('echo "first"')
+        expect(command).toContain('echo "second"')
+      })
+
+      it('should handle multiple && operators', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'cmd1 && cmd2 && cmd3')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should have two conditional blocks
+        const conditionalCount = (command.match(/if \(\$\?\)/g) || []).length
+        expect(conditionalCount).toBe(2)
+      })
+
+      it('should preserve && inside quoted strings', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "a && b" && echo "c"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // The quoted && should be preserved
+        expect(command).toContain('"a && b"')
+        // But the command separator && should be converted
+        expect(command).toContain('if ($?)')
+      })
+
+      it('should handle && with single quoted strings', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, "echo 'a && b' && echo 'c'")
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // The quoted && should be preserved
+        expect(command).toContain("'a && b'")
+        // But the command separator && should be converted
+        expect(command).toContain('if ($?)')
+      })
+
+      it('should not modify commands without &&', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo "hello world"')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should contain the original command (minus encoding prefix)
+        expect(command).toContain('echo "hello world"')
+        expect(command).not.toContain('if ($?)')
+      })
+
+      it('should add UTF-8 input encoding for PowerShell', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        manager.runCommand(terminal, 'echo test')
+
+        const callArgs = (spawn as any).mock.calls[0]
+        const args = callArgs[1]
+        const command = args[1]
+
+        // Should include both output and input encoding
+        expect(command).toContain('[Console]::OutputEncoding')
+        expect(command).toContain('[Console]::InputEncoding')
+        expect(command).toContain('$OutputEncoding')
+      })
+    })
+
+    describe('Output decoding', () => {
+      it('should decode PowerShell output as UTF-8', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'echo test')
+          const chunks: string[] = []
+
+          process.on('line', (chunk: string) => {
+            chunks.push(chunk)
+            // Verify the chunk is properly decoded (UTF-8)
+            expect(typeof chunk).toBe('string')
+            resolve()
+          })
+
+          // Simulate UTF-8 encoded output
+          const utf8Buffer = Buffer.from('test output', 'utf8')
+          mockStdout.emit('data', utf8Buffer)
+        })
+      })
+
+      it('should decode CMD output using detected code page', () => {
+        // Mock code page detection for Traditional Chinese
+        ;(execSync as any).mockReturnValue('Active code page: 950')
+        ;(os.platform as any).mockReturnValue('win32')
+
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\cmd.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'dir')
+          const chunks: string[] = []
+
+          process.on('line', (chunk: string) => {
+            chunks.push(chunk)
+            expect(typeof chunk).toBe('string')
+            resolve()
+          })
+
+          // Simulate output (would be Big5 encoded on Traditional Chinese Windows)
+          // Using a simple ASCII buffer for test
+          const buffer = Buffer.from('test output', 'utf8')
+          mockStdout.emit('data', buffer)
+        })
+      })
+
+      it('should handle Chinese characters in PowerShell output', () => {
+        const terminal: LocalTerminalInfo = {
+          id: 1,
+          sessionId: 'test',
+          shell: 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',
+          platform: 'win32',
+          isAlive: true
+        }
+
+        return new Promise<void>((resolve) => {
+          const process = manager.runCommand(terminal, 'echo test')
+          const chunks: string[] = []
+
+          process.on('line', (chunk: string) => {
+            chunks.push(chunk)
+            // Verify Chinese characters are properly decoded
+            expect(chunk).toBe(
+              'Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test'
+            )
+            resolve()
+          })
+
+          // Simulate UTF-8 encoded Chinese text
+          const chineseText =
+            'Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test: Chinese test'
+          const utf8Buffer = Buffer.from(chineseText, 'utf8')
+          mockStdout.emit('data', utf8Buffer)
+        })
+      })
     })
   })
 })

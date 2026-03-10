@@ -1,9 +1,86 @@
-import { spawn, ChildProcess } from 'child_process'
+import { spawn, ChildProcess, execSync } from 'child_process'
 import * as os from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
 import EventEmitter from 'events'
+import * as iconv from 'iconv-lite'
 const logger = createLogger('agent')
+
+// Cache for Windows code page to avoid repeated detection
+let cachedWindowsCodePage: string | null = null
+
+/**
+ * Get Windows system code page (e.g., 'cp950' for Traditional Chinese, 'cp936' for Simplified Chinese)
+ * Returns null on non-Windows platforms or if detection fails
+ */
+function getWindowsCodePage(): string | null {
+  if (os.platform() !== 'win32') {
+    return null
+  }
+
+  // Return cached value if available
+  if (cachedWindowsCodePage) {
+    return cachedWindowsCodePage
+  }
+
+  try {
+    // Use chcp command to get current code page
+    const result = execSync('chcp', { encoding: 'utf8', timeout: 5000 })
+    // Parse output like "Active code page: 950"
+    const match = result.match(/(\d+)/)
+    if (match) {
+      const codePageNum = parseInt(match[1], 10)
+      // Map Windows code page numbers to iconv encoding names
+      const codePageMap: Record<number, string> = {
+        936: 'gbk', // Simplified Chinese (GBK)
+        950: 'big5', // Traditional Chinese (Big5)
+        932: 'shiftjis', // Japanese (Shift-JIS)
+        949: 'euc-kr', // Korean
+        65001: 'utf8' // UTF-8
+      }
+      cachedWindowsCodePage = codePageMap[codePageNum] || `cp${codePageNum}`
+      logger.info(`[LocalTerminal] Detected Windows code page: ${codePageNum} -> ${cachedWindowsCodePage}`)
+      return cachedWindowsCodePage
+    }
+  } catch (error) {
+    logger.warn('[LocalTerminal] Failed to detect Windows code page', { error: error })
+  }
+
+  // Default to null (will use UTF-8)
+  return null
+}
+
+/**
+ * Check if the shell is PowerShell (powershell.exe or pwsh.exe)
+ */
+function isPowerShell(shellPath: string): boolean {
+  const normalized = shellPath.toLowerCase()
+  return normalized.includes('powershell') || normalized.includes('pwsh.exe')
+}
+
+/**
+ * Decode buffer using appropriate encoding
+ * For PowerShell: UTF-8 (since we set output encoding to UTF-8)
+ * For CMD: Use detected system code page (e.g., Big5 for Traditional Chinese)
+ * For others: UTF-8 (bash, etc. usually output UTF-8)
+ */
+function decodeOutput(data: Buffer, shellPath: string): string {
+  // For PowerShell, always use UTF-8 since we set the output encoding
+  if (isPowerShell(shellPath)) {
+    return data.toString('utf8')
+  }
+
+  // For CMD on Windows, use detected code page
+  if (os.platform() === 'win32' && shellPath.toLowerCase().includes('cmd.exe')) {
+    const codePage = getWindowsCodePage()
+    if (codePage && iconv.encodingExists(codePage)) {
+      return iconv.decode(data, codePage)
+    }
+  }
+
+  // Default: UTF-8
+  return data.toString('utf8')
+}
 
 export interface LocalTerminalInfo {
   id: number
@@ -201,6 +278,59 @@ export class LocalTerminalManager {
   }
 
   /**
+   * Convert bash-style && chains to PowerShell compatible syntax
+   * PowerShell 5.1 doesn't support &&, so we convert to ; with conditional execution
+   */
+  private convertAndOperatorForPowerShell(command: string): string {
+    // PowerShell 7+ supports &&, but PowerShell 5.1 doesn't
+    // Convert "cmd1 && cmd2" to "cmd1; if ($?) { cmd2 }"
+    // This preserves the semantics of && (only run if previous succeeded)
+
+    // Split by && but be careful about quoted strings
+    const parts: string[] = []
+    let current = ''
+    let inSingleQuote = false
+    let inDoubleQuote = false
+    let i = 0
+
+    while (i < command.length) {
+      const char = command[i]
+      const nextChar = command[i + 1]
+
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote
+        current += char
+      } else if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote
+        current += char
+      } else if (char === '&' && nextChar === '&' && !inSingleQuote && !inDoubleQuote) {
+        // Found && outside of quotes
+        parts.push(current.trim())
+        current = ''
+        i++ // Skip the second &
+      } else {
+        current += char
+      }
+      i++
+    }
+
+    if (current.trim()) {
+      parts.push(current.trim())
+    }
+
+    if (parts.length <= 1) {
+      return command // No && found, return original
+    }
+
+    // Build PowerShell equivalent using $? (last command success)
+    let result = parts[0]
+    for (let j = 1; j < parts.length; j++) {
+      result += `; if ($?) { ${parts[j]} }`
+    }
+    return result
+  }
+
+  /**
    * Translate Unix commands to Windows PowerShell equivalents
    * This ensures Unix-style commands work on Windows PowerShell
    */
@@ -276,8 +406,14 @@ export class LocalTerminalManager {
         // Git Bash or other bash shells on Windows
         shellArgs = ['-c', finalCommand]
       } else {
-        // PowerShell - translate Unix commands
+        // PowerShell - translate Unix commands and set UTF-8 output encoding
         finalCommand = this.translateCommandForPowerShell(command)
+        // Convert bash-style && chains to PowerShell compatible syntax
+        // PowerShell 5.1 doesn't support &&, so we convert to conditional execution
+        finalCommand = this.convertAndOperatorForPowerShell(finalCommand)
+        // Prepend UTF-8 encoding setup to ensure PowerShell uses UTF-8 for both input and output
+        // This solves encoding issues on non-English Windows systems (e.g., Traditional Chinese uses Big5 by default)
+        finalCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; ${finalCommand}`
         shellArgs = ['-Command', finalCommand]
       }
     } else {
@@ -310,16 +446,18 @@ export class LocalTerminalManager {
 
     let output = ''
 
-    // Handle standard output
+    // Handle standard output with proper encoding
     childProcess.stdout?.on('data', (data: Buffer) => {
-      const chunk = data.toString()
+      // Use decodeOutput to handle encoding properly (UTF-8 for PowerShell, system code page for CMD)
+      const chunk = decodeOutput(data, terminal.shell)
       output += chunk
       commandProcess.emit('line', chunk)
     })
 
-    // Handle standard error
+    // Handle standard error with proper encoding
     childProcess.stderr?.on('data', (data: Buffer) => {
-      const chunk = data.toString()
+      // Use decodeOutput to handle encoding properly (UTF-8 for PowerShell, system code page for CMD)
+      const chunk = decodeOutput(data, terminal.shell)
       output += chunk
       commandProcess.emit('line', chunk)
     })

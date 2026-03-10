@@ -131,7 +131,6 @@ import {
   shouldUseBastionStatusChannel
 } from './utils/jumpServerStatusHandler'
 import { getLastNonEmptyLine, isTerminalPromptLine } from './utils/terminalPrompt'
-import { useDeviceStore } from '@/store/useDeviceStore'
 import { isFocusInAiTab } from '@/utils/domUtils'
 import { keywordHighlightService } from '@/services/keywordHighlightService'
 import { useZmodem } from './utils/chatermZmodem'
@@ -404,7 +403,6 @@ let dbConfigStash: {
 } = {}
 let config
 
-const deviceStore = useDeviceStore()
 const isOfficeDevice = ref(false)
 const isLocalConnect = ref(false)
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0

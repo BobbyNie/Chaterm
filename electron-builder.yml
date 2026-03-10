@@ -71,10 +71,6 @@ nsis:
 mac:
   icon: resources/icon.icns
   target:
-    - target: dmg
-      arch:
-        - x64
-        - arm64
     - target: zip
       arch:
         - x64
@@ -84,9 +80,6 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-dmg:
-  artifactName: ${name}-${version}-macos-${arch}.${ext}
-  title: ${productName}-${version}-${arch}
 linux:
   target:
     - AppImage

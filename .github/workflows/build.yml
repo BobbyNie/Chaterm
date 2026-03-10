@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [main, boc_intranet]
+    branches: [main, intranet]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -194,7 +194,6 @@ jobs:
             - macOS Apple Silicon (CN edition)
           files: |
             dist/windows/cn/*.exe
-            dist/macos/cn/*.dmg
             dist/macos/cn/*.zip
           draft: false
           prerelease: false
