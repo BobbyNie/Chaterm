@@ -132,7 +132,6 @@ import {
 } from './utils/jumpServerStatusHandler'
 import { getLastNonEmptyLine, isTerminalPromptLine } from './utils/terminalPrompt'
 import { stripAnsiBasic, stripAnsiExtended } from './utils/ansiUtils'
-import { useDeviceStore } from '@/store/useDeviceStore'
 import { isFocusInAiTab } from '@/utils/domUtils'
 import { keywordHighlightService } from '@/services/keywordHighlightService'
 import { useZmodem } from './utils/chatermZmodem'
