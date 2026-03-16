@@ -3,6 +3,17 @@
 </div>
 <br>
 
+> **这是内网版本**，Fork 自 [chaterm/Chaterm](https://github.com/chaterm/Chaterm)
+> 专为内网部署而设计，无需云服务依赖。
+>
+> - 无需登录 - 直接启动使用所有功能
+> - 无云同步 - 所有数据仅存储在本地
+> - 日期版本号 (yyyy.MM.dd)
+>
+> 如需包含云功能的原版，请访问 [chaterm/Chaterm](https://github.com/chaterm/Chaterm)
+
+<br>
+
 <p align="center">
   <a href="https://www.tbench.ai/leaderboard/terminal-bench/1.0"><img src="https://img.shields.io/badge/Terminal--Bench-Ranked_%232-00D94E?style=for-the-badge&logo=github&logoColor=white" alt="Terminal-Bench"></a>
   <a href="https://aws.amazon.com/cn/blogs/china/chaterm-aws-kms-envelope-encryption-for-zero-trust-security-en/"><img src="https://img.shields.io/badge/AWS-Security-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white&labelColor=232F3E" alt="AWS Security"></a>
@@ -74,29 +85,59 @@ Chaterm是一款AI原生的智能终端Agent，旨在通过自然语言交互重
 
 ## 内网版本说明
 
-本项目 Fork 自 [chaterm/Chaterm](https://github.com/chaterm/Chaterm)，针对内网使用场景进行了以下优化：
+本项目 Fork 自 [chaterm/Chaterm](https://github.com/chaterm/Chaterm)，专为**内网部署**而设计，无需云服务依赖。
 
-### 主要修改
+### 为什么需要这个 Fork？
 
-| 类别 | 修改内容 |
-|------|----------|
-| 登录系统 | 移除登录页面，应用启动直接进入功能区 |
-| 用户菜单 | 移除左侧栏用户头像和登录/登出菜单 |
-| 计费功能 | 移除设置中的"计费概览"标签页 |
-| AI 标签 | 无可用模型时只显示"配置模型"按钮，移除登录提示 |
-| CI/CD | 新增 GitHub Actions 自动构建 Windows 和 macOS 安装包 |
-| 版本管理 | 使用日期格式 (yyyy.MM.dd) 作为版本号，自动创建 GitHub Release |
+原版 Chaterm 依赖以下云服务：
+- 用户认证（登录/注册）
+- 跨设备数据同步
+- 订阅和计费管理
+- 云端 AI 模型访问
 
-### 自动构建产物
+对于需要在隔离内网环境中部署的组织，这些云依赖并不适用。本 Fork 移除了所有云相关功能，提供**完全离线**的使用体验。
 
-- Windows: `chaterm-{date}-cn-setup-x64.exe`
-- macOS ARM64: `chaterm-{date}-cn-macos-arm64.zip`
-- macOS x64: `chaterm-{date}-cn-macos-x64.zip`
+### 主要修改对比
+
+| 类别 | 原版 | 内网版本 |
+|------|------|----------|
+| 登录系统 | 需要手机/邮箱登录 | 自动以访客身份登录，无需认证 |
+| 用户菜单 | 头像下拉菜单含登录/登出 | 从侧边栏移除用户菜单 |
+| 计费功能 | 设置中的订阅管理标签页 | 从设置中移除 |
+| AI 标签 | 无模型时显示登录提示 | 只显示"配置模型"按钮 |
+| 数据同步 | 云端跨设备同步 | 所有数据仅存储在本地 |
+| CI/CD | 手动发布 | 每次推送自动构建 |
+| 版本管理 | 语义化版本（如 0.9.3） | 日期格式 (yyyy.MM.dd) |
+| 发布方式 | 手动上传 | 自动创建 GitHub Release |
+
+### 访客用户详情
+
+内网版本自动以访客身份登录：
+- **UID:** 999999999
+- **用户名:** guest
+- **邮箱:** guest@chaterm.ai
+
+### 构建产物
+
+| 平台 | 文件名 | 说明 |
+|------|--------|------|
+| Windows x64 | `chaterm-{date}-cn-setup-x64.exe` | NSIS 安装程序 |
+| macOS ARM64 | `chaterm-{date}-cn-macos-arm64.zip` | Apple Silicon |
+| macOS x64 | `chaterm-{date}-cn-macos-x64.zip` | Intel Mac |
 
 ### 快速开始
 
-1. 配置 AI 模型：进入设置 → 模型配置，添加本地模型或 Ollama 等服务
-2. 开始使用：无需登录，直接使用 AI 终端功能
+1. **下载** 最新版本：[Releases](https://github.com/BobbyNie/Chaterm/releases)
+2. **安装** 应用
+3. **配置 AI 模型**：进入设置 → 模型配置，添加本地 AI 模型或 Ollama 服务
+4. **开始使用**：无需登录，所有功能立即可用
+
+### 同步上游更新
+
+本 Fork 会定期同步上游仓库的 bug 修复和功能改进，同时保留内网特定的修改：
+- 合并时排除云服务相关代码
+- 保留内网特定修改（无登录、访客用户）
+- 移除不需要的安全相关导入
 
 ## 开发指南
 

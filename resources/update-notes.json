@@ -1,6 +1,50 @@
 {
-  "releaseNotesUrl": "https://github.com/chaterm/Chaterm/releases/tag/v",
+  "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
+    {
+      "version": "2026.03.16",
+      "date": "2026-03-16",
+      "highlights": {
+        "zh-CN": [
+          "内网版本：无登录要求，直接使用所有功能",
+          "同步上游：Electron 升级到 41.0.2，提升稳定性",
+          "同步上游：新增阿拉伯语本地化支持",
+          "同步上游：Agent 新增 read_file 工具，提升复杂任务稳定性",
+          "同步上游：AI 对话支持仅输入 / 触发命令弹窗",
+          "同步上游：文件管理重构，优化文件夹上传/下载/传输流程",
+          "同步上游：修复浅色主题切换背景时的终端显示异常"
+        ],
+        "en-US": [
+          "Intranet Edition: No login required, use all features directly",
+          "Synced Upstream: Electron upgraded to 41.0.2 for better stability",
+          "Synced Upstream: Added Arabic localization support",
+          "Synced Upstream: Agent adds read_file tool for complex task stability",
+          "Synced Upstream: AI conversation supports / trigger for command popup",
+          "Synced Upstream: File management refactored, optimized folder upload/download/transfer",
+          "Synced Upstream: Fixed terminal display issues with light theme background switching"
+        ]
+      }
+    },
+    {
+      "version": "2026.03.09",
+      "date": "2026-03-09",
+      "highlights": {
+        "zh-CN": [
+          "内网版本首次发布",
+          "移除云服务依赖：无需登录，自动以访客身份使用",
+          "移除用户菜单和计费功能",
+          "添加 GitHub Actions 自动构建",
+          "支持 Windows 和 macOS 平台"
+        ],
+        "en-US": [
+          "Initial release of Intranet Edition",
+          "Removed cloud dependencies: No login required, auto-use as guest",
+          "Removed user menu and billing features",
+          "Added GitHub Actions for automated builds",
+          "Supports Windows and macOS platforms"
+        ]
+      }
+    },
     {
       "version": "0.9.3",
       "date": "2026-03-12",

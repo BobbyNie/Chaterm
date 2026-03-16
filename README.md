@@ -3,6 +3,17 @@
 </div>
 <br>
 
+> **This is an INTRANET EDITION** forked from [chaterm/Chaterm](https://github.com/chaterm/Chaterm)
+> for internal network deployment without cloud service dependencies.
+>
+> - No login required - starts directly to main interface
+> - No cloud sync - all data stays local
+> - Date-based versioning (yyyy.MM.dd)
+>
+> For the original version with cloud features, visit [chaterm/Chaterm](https://github.com/chaterm/Chaterm).
+
+<br>
+
 <p align="center">
   <a href="https://www.tbench.ai/leaderboard/terminal-bench/1.0"><img src="https://img.shields.io/badge/Terminal--Bench-Ranked_%232-00D94E?style=for-the-badge&logo=github&logoColor=white" alt="Terminal-Bench"></a>
   <a href="https://aws.amazon.com/cn/blogs/china/chaterm-aws-kms-envelope-encryption-for-zero-trust-security-en/"><img src="https://img.shields.io/badge/AWS-Security-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white&labelColor=232F3E" alt="AWS Security"></a>
@@ -74,29 +85,59 @@ With its built-in expert knowledge base and powerful agent inference capabilitie
 
 ## Intranet Edition Notes
 
-This project is forked from [chaterm/Chaterm](https://github.com/chaterm/Chaterm) with the following modifications for intranet deployment:
+This project is forked from [chaterm/Chaterm](https://github.com/chaterm/Chaterm) for **internal network deployment** without cloud service dependencies.
+
+### Why This Fork?
+
+The original Chaterm requires cloud services for:
+- User authentication (login/registration)
+- Data synchronization across devices
+- Subscription and billing management
+- Cloud-based AI model access
+
+For organizations that need to deploy in an isolated intranet environment, these cloud dependencies are not suitable. This fork removes all cloud-related features and provides a **completely offline** experience.
 
 ### Key Modifications
 
-| Category | Changes |
-|----------|---------|
-| Login System | Removed login page, app starts directly to main interface |
-| User Menu | Removed user avatar and login/logout menu from sidebar |
-| Billing | Removed billing tab from settings |
-| AI Tab | Only shows "Configure Model" button when no models available, removed login prompt |
-| CI/CD | Added GitHub Actions for automated Windows and macOS builds |
-| Versioning | Uses date format (yyyy.MM.dd) as version number, auto-creates GitHub Release |
+| Category | Original | Intranet Edition |
+|----------|----------|------------------|
+| Login System | Required login with phone/email | Auto-login as guest, no authentication needed |
+| User Menu | Avatar with login/logout | Removed user menu from sidebar |
+| Billing | Subscription management tab | Removed from settings |
+| AI Tab | Shows login prompt without models | Only shows "Configure Model" button |
+| Data Sync | Cloud sync across devices | All data stored locally |
+| CI/CD | Manual releases | Automated builds on every push |
+| Versioning | Semantic versioning (e.g., 0.9.3) | Date-based (yyyy.MM.dd) |
+| Releases | Manual upload | Auto-creates GitHub Release |
+
+### Guest User Details
+
+The intranet edition automatically logs in as a guest user:
+- **UID:** 999999999
+- **Username:** guest
+- **Email:** guest@chaterm.ai
 
 ### Build Artifacts
 
-- Windows: `chaterm-{date}-cn-setup-x64.exe`
-- macOS ARM64: `chaterm-{date}-cn-macos-arm64.zip`
-- macOS x64: `chaterm-{date}-cn-macos-x64.zip`
+| Platform | Artifact Name | Notes |
+|----------|--------------|-------|
+| Windows x64 | `chaterm-{date}-cn-setup-x64.exe` | NSIS installer |
+| macOS ARM64 | `chaterm-{date}-cn-macos-arm64.zip` | Apple Silicon |
+| macOS x64 | `chaterm-{date}-cn-macos-x64.zip` | Intel Macs |
 
 ### Quick Start
 
-1. Configure AI Model: Go to Settings → Models, add local model or Ollama service
-2. Start Using: No login required, use AI terminal features directly
+1. **Download** the latest release from [Releases](https://github.com/BobbyNie/Chaterm/releases)
+2. **Install** the application
+3. **Configure AI Model**: Go to Settings → Models, add your local AI model or Ollama service
+4. **Start Using**: No login required, all features are available immediately
+
+### Syncing Upstream Updates
+
+This fork periodically syncs with the upstream repository for bug fixes and improvements while preserving intranet-specific modifications:
+- Cloud service code is excluded during merge
+- Intranet-specific changes (no login, guest user) are preserved
+- Security-related imports are removed when not needed
 
 ## Development Guide
 
