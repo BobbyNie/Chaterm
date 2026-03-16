@@ -49,6 +49,7 @@ import { regexSearchMatches as localGrepSearch } from '../../services/grep/index
 import { buildRemoteGlobCommand, parseRemoteGlobOutput, buildRemoteGrepCommand, parseRemoteGrepOutput } from '../../services/search/remote'
 import { broadcastInteractionClosed } from '../../services/interaction-detector/ipc-handlers'
 import { getOffloadDir, shouldOffload, writeToolOutput } from '../offload'
+import { getKnowledgeBaseRoot } from '../../../services/knowledgebase'
 
 interface StreamMetrics {
   didReceiveUsageChunk?: boolean
@@ -3035,6 +3036,14 @@ export class Task {
       // Clear ephemeral tool results (upstream feature)
       await this.clearEphemeralToolResults()
 
+      // Trigger chat sync upload after the agent emits a completion result
+      try {
+        const { ChatSyncScheduler } = await import('../../../storage/chat_sync/index')
+        ChatSyncScheduler.getInstance()?.triggerUploadSync()
+      } catch {
+        // Chat sync module may not be available, ignore silently
+      }
+
       const { response, text, contentParts } = await this.ask('completion_result', '', false)
       if (response === 'yesButtonClicked') {
         await this.pushToolResult(toolDescription, '')
@@ -3336,6 +3345,10 @@ export class Task {
           baseDir = getOffloadDir(this.taskId)
           searchPath = relPath.replace(/^@?offload\//, '') || '.'
           logger.info('[glob_search] Searching in offload directory', { taskId: this.taskId, searchPath })
+        } else if (relPath.startsWith('@knowledgebase') || relPath.startsWith('knowledgebase')) {
+          baseDir = getKnowledgeBaseRoot()
+          searchPath = relPath.replace(/^@?knowledgebase\/?/, '') || '.'
+          logger.info('[glob_search] Searching in knowledgebase', { taskId: this.taskId, searchPath })
         }
 
         // Local
@@ -3461,6 +3474,18 @@ export class Task {
         actualPath = path.join(getOffloadDir(this.taskId), relativePath)
         isOffloadFile = true
         logger.info('[read_file] Reading offload file', { taskId: this.taskId, relativePath })
+      } else if (filePath.startsWith('@knowledgebase') || filePath.startsWith('knowledgebase')) {
+        // Resolve @knowledgebase/ or knowledgebase/ to absolute path under knowledge base root (cross-platform)
+        const relativePath = filePath.replace(/^@?knowledgebase\/?/, '').replace(/\\/g, '/') || '.'
+        actualPath = path.join(getKnowledgeBaseRoot(), relativePath)
+        logger.info('[read_file] Reading knowledge base file', { taskId: this.taskId, relativePath })
+      } else if (filePath.length > 1 && filePath.startsWith('@')) {
+        // Strip leading @ when the rest is an absolute path (e.g. @C:/Users/.../knowledgebase/test/1.md on Windows)
+        const candidate = filePath.slice(1).trim()
+        if (path.isAbsolute(candidate)) {
+          actualPath = path.resolve(candidate)
+          logger.info('[read_file] Resolved @-prefixed absolute path', { taskId: this.taskId, resolved: actualPath })
+        }
       }
 
       // For offload files, enforce a safe default window size when the model

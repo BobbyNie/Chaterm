@@ -12,12 +12,17 @@
           v-for="model in modelOptions"
           :key="model.id"
           class="model-item"
+          :class="{ 'locked-model-item': isLockedModel(model.name) }"
         >
           <a-checkbox
             v-model:checked="model.checked"
             @change="handleModelChange(model)"
           >
             <span class="model-label">
+              <LockOutlined
+                v-if="isLockedModel(model.name)"
+                class="locked-model-icon"
+              />
               <img
                 v-if="model.name.endsWith('-Thinking')"
                 src="@/assets/icons/thinking.svg"
@@ -126,7 +131,7 @@
           :bordered="false"
         >
           <div class="api-provider-header">
-            <h4>OpenAI Compatible</h4>
+            <h4>OpenAI Compatible & Responses</h4>
           </div>
 
           <div class="setting-item">
@@ -139,6 +144,31 @@
                 v-model:value="openAiBaseUrl"
                 :placeholder="$t('user.openAiBaseUrlPh')"
               />
+              <p class="setting-description-no-padding">
+                {{ $t('user.openAiBaseUrlDescribe') }}
+              </p>
+              <p
+                v-if="openAiBaseUrl"
+                class="setting-description-no-padding url-preview"
+              >
+                {{ $t('user.openAiBaseUrlPreview') }}: {{ openAiUrlPreview }}
+              </p>
+            </a-form-item>
+          </div>
+
+          <div class="setting-item">
+            <a-form-item
+              :label="$t('user.openAiApiFormat')"
+              :label-col="{ span: 24 }"
+              :wrapper-col="{ span: 24 }"
+            >
+              <a-select
+                v-model:value="openAiApiFormat"
+                @change="saveOpenAiConfig"
+              >
+                <a-select-option value="chat-completions"> Chat Completions </a-select-option>
+                <a-select-option value="responses"> Responses </a-select-option>
+              </a-select>
             </a-form-item>
           </div>
 
@@ -376,6 +406,81 @@
           </div>
         </a-card>
 
+        <!-- Anthropic Configuration -->
+        <a-card
+          class="settings-section"
+          :bordered="false"
+        >
+          <div class="api-provider-header">
+            <h4>Anthropic</h4>
+          </div>
+
+          <div class="setting-item">
+            <a-form-item
+              :label="$t('user.anthropicBaseUrl')"
+              :label-col="{ span: 24 }"
+              :wrapper-col="{ span: 24 }"
+            >
+              <a-input
+                v-model:value="anthropicBaseUrl"
+                :placeholder="$t('user.anthropicBaseUrlPh')"
+              />
+              <p class="setting-description-no-padding">
+                {{ $t('user.anthropicBaseUrlDescribe') }}
+              </p>
+            </a-form-item>
+          </div>
+
+          <div class="setting-item">
+            <a-form-item
+              :label="$t('user.anthropicApiKey')"
+              :label-col="{ span: 24 }"
+              :wrapper-col="{ span: 24 }"
+            >
+              <a-input-password
+                v-model:value="anthropicApiKey"
+                :placeholder="$t('user.anthropicApiKeyPh')"
+              />
+              <p class="setting-description-no-padding">
+                {{ $t('user.anthropicApiKeyDescribe') }}
+              </p>
+            </a-form-item>
+          </div>
+
+          <div class="setting-item">
+            <a-form-item
+              :label="$t('user.model')"
+              :label-col="{ span: 24 }"
+              :wrapper-col="{ span: 24 }"
+            >
+              <div class="model-input-container">
+                <a-input
+                  v-model:value="anthropicModelId"
+                  size="small"
+                  class="model-input"
+                />
+                <div class="button-group">
+                  <a-button
+                    class="check-btn"
+                    size="small"
+                    :loading="checkLoadingAnthropic"
+                    @click="() => handleCheck('anthropic')"
+                  >
+                    Check
+                  </a-button>
+                  <a-button
+                    class="save-btn"
+                    size="small"
+                    @click="() => handleSave('anthropic')"
+                  >
+                    Save
+                  </a-button>
+                </div>
+              </div>
+            </a-form-item>
+          </div>
+        </a-card>
+
         <!-- Ollama Configuration -->
         <a-card
           class="settings-section"
@@ -440,8 +545,9 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { notification } from 'ant-design-vue'
+import { LockOutlined } from '@ant-design/icons-vue'
 import { updateGlobalState, getGlobalState, getSecret, storeSecret, getAllExtensionState } from '@renderer/agent/storage/state'
 import eventBus from '@/utils/eventBus'
 import i18n from '@/locales'
@@ -469,6 +575,9 @@ interface DefaultModel {
 
 const { t } = i18n.global
 const modelOptions = ref<ModelOption[]>([])
+const lockedModelNames = ref<Set<string>>(new Set())
+
+const isLockedModel = (name: string): boolean => lockedModelNames.value.has(name)
 
 const awsRegionOptions = ref([
   { value: 'us-east-1', label: 'us-east-1' },
@@ -505,17 +614,55 @@ const liteLlmBaseUrl = ref('')
 const liteLlmApiKey = ref('')
 const liteLlmModelId = ref('')
 const deepSeekApiKey = ref('')
+const anthropicBaseUrl = ref('')
+const anthropicApiKey = ref('')
+const anthropicModelId = ref('')
 const openAiBaseUrl = ref('https://api.openai.com/v1')
 const openAiApiKey = ref('')
 const openAiModelId = ref('')
+const openAiApiFormat = ref<'chat-completions' | 'responses'>('chat-completions')
 const ollamaBaseUrl = ref('http://localhost:11434')
 const ollamaModelId = ref('')
 const checkLoadingLiteLLM = ref(false)
 const checkLoadingBedrock = ref(false)
 const checkLoadingDeepSeek = ref(false)
+const checkLoadingAnthropic = ref(false)
 const checkLoadingOpenAI = ref(false)
 const checkLoadingOllama = ref(false)
 const addModelSwitch = ref(false)
+
+// Computed URL preview for OpenAI base URL
+// Mirrors backend normalizeBaseUrl logic: auto-add /v1 unless URL has '#' or already contains /v1
+const openAiUrlPreview = computed(() => {
+  const url = openAiBaseUrl.value.trim()
+  if (!url) return ''
+
+  let baseUrl: string
+  if (url.endsWith('#')) {
+    // '#' = skip /v1 prefix
+    baseUrl = url.slice(0, -1)
+  } else {
+    // Check if URL already has /v1 path segment
+    let hasV1 = false
+    try {
+      const parsed = new URL(url)
+      const segments = parsed.pathname.split('/').filter(Boolean)
+      hasV1 = segments.includes('v1')
+    } catch {
+      hasV1 = false
+    }
+    if (hasV1) {
+      baseUrl = url
+    } else {
+      const sep = url.endsWith('/') ? '' : '/'
+      baseUrl = `${url}${sep}v1`
+    }
+  }
+
+  const apiPath = openAiApiFormat.value === 'responses' ? 'responses' : 'chat/completions'
+  const separator = baseUrl.endsWith('/') ? '' : '/'
+  return `${baseUrl}${separator}${apiPath}`
+})
 
 // Load saved configuration
 const loadSavedConfig = async () => {
@@ -534,8 +681,16 @@ const loadSavedConfig = async () => {
     liteLlmBaseUrl.value = ((await getGlobalState('liteLlmBaseUrl')) as string) || ''
     liteLlmApiKey.value = (await getSecret('liteLlmApiKey')) || ''
     deepSeekApiKey.value = (await getSecret('deepSeekApiKey')) || ''
+    // Anthropic information
+    anthropicBaseUrl.value = ((await getGlobalState('anthropicBaseUrl')) as string) || ''
+    anthropicApiKey.value = (await getSecret('anthropicApiKey')) || ''
+    anthropicModelId.value = ((await getGlobalState('anthropicModelId')) as string) || ''
     openAiBaseUrl.value = ((await getGlobalState('openAiBaseUrl')) as string) || 'https://api.openai.com/v1'
     openAiApiKey.value = (await getSecret('openAiApiKey')) || ''
+    const savedModelInfo = (await getGlobalState('openAiModelInfo')) as Record<string, unknown> | undefined
+    if (savedModelInfo?.apiFormat) {
+      openAiApiFormat.value = savedModelInfo.apiFormat as 'chat-completions' | 'responses'
+    }
     awsEndpointSelected.value = ((await getGlobalState('awsEndpointSelected')) as boolean) || false
     // Ollama information
     ollamaBaseUrl.value = ((await getGlobalState('ollamaBaseUrl')) as string) || 'http://localhost:11434'
@@ -593,10 +748,24 @@ const saveDeepSeekConfig = async () => {
   }
 }
 
+const saveAnthropicConfig = async () => {
+  try {
+    await updateGlobalState('anthropicBaseUrl', anthropicBaseUrl.value)
+    await storeSecret('anthropicApiKey', anthropicApiKey.value)
+  } catch (error) {
+    logger.error('Failed to save Anthropic config', { error: error })
+    notification.error({
+      message: t('user.error'),
+      description: t('user.saveAnthropicConfigFailed')
+    })
+  }
+}
+
 const saveOpenAiConfig = async () => {
   try {
     await updateGlobalState('openAiBaseUrl', openAiBaseUrl.value)
     await storeSecret('openAiApiKey', openAiApiKey.value)
+    await updateGlobalState('openAiModelInfo', { apiFormat: openAiApiFormat.value })
   } catch (error) {
     logger.error('Failed to save OpenAI config', { error: error })
     notification.error({
@@ -644,6 +813,11 @@ const checkModelConfig = async (provider: string) => {
       break
     case 'deepseek':
       if (isEmptyValue(deepSeekApiKey.value) || isEmptyValue(deepSeekModelId.value)) {
+        return false
+      }
+      break
+    case 'anthropic':
+      if (isEmptyValue(anthropicApiKey.value) || isEmptyValue(anthropicModelId.value)) {
         return false
       }
       break
@@ -709,13 +883,23 @@ const handleCheck = async (provider: string): Promise<void> => {
         deepSeekApiKey: deepSeekApiKey.value
       }
       break
+    case 'anthropic':
+      checkLoadingAnthropic.value = true
+      checkOptions = {
+        apiProvider: provider,
+        anthropicApiKey: anthropicApiKey.value,
+        anthropicBaseUrl: anthropicBaseUrl.value,
+        anthropicModelId: anthropicModelId.value
+      }
+      break
     case 'openai':
       checkLoadingOpenAI.value = true
       checkOptions = {
         apiProvider: provider,
         openAiBaseUrl: openAiBaseUrl.value,
         openAiApiKey: openAiApiKey.value,
-        openAiModelId: openAiModelId.value
+        openAiModelId: openAiModelId.value,
+        openAiModelInfo: { apiFormat: openAiApiFormat.value }
       }
       break
     case 'ollama':
@@ -765,6 +949,7 @@ const handleCheck = async (provider: string): Promise<void> => {
     checkLoadingBedrock.value = false
     checkLoadingLiteLLM.value = false
     checkLoadingDeepSeek.value = false
+    checkLoadingAnthropic.value = false
     checkLoadingOpenAI.value = false
     checkLoadingOllama.value = false
   }
@@ -772,7 +957,6 @@ const handleCheck = async (provider: string): Promise<void> => {
 
 // Add model management methods
 const handleModelChange = (model) => {
-  // Update model selection state
   const index = modelOptions.value.findIndex((m) => m.id === model.id)
   if (index !== -1) {
     modelOptions.value[index].checked = model.checked
@@ -855,26 +1039,32 @@ const loadModelOptions = async () => {
     }
 
     let defaultModels: DefaultModel[] = []
+    let subscriptionModelsList: string[] = []
     await getUser({}).then((res) => {
       defaultModels = res?.data?.models || []
+      subscriptionModelsList = (res?.data?.subscriptionModels || []).map((m: unknown) => String(m))
       updateGlobalState('defaultBaseUrl', res?.data?.llmGatewayAddr)
       storeSecret('defaultApiKey', res?.data?.key)
     })
+
+    const availableSet = new Set(defaultModels.map((m) => String(m)))
+    const allKnownSet = new Set([...availableSet, ...subscriptionModelsList])
+    lockedModelNames.value = new Set(subscriptionModelsList.filter((m) => !availableSet.has(m)))
+
     const savedModelOptions = (await getGlobalState('modelOptions')) || []
     if (savedModelOptions && Array.isArray(savedModelOptions)) {
-      // 1. Filter out models that type=='standard' and do not exist in defaultModels
       const filteredOptions = savedModelOptions.filter((option) => {
         if (option.type !== 'standard') return true
-        return defaultModels.some((defaultModel) => defaultModel === option.name)
+        return allKnownSet.has(option.name)
       })
 
-      // 2. Add models that do not exist in savedModelOptions in defaultModels
       defaultModels.forEach((defaultModel) => {
-        const exists = filteredOptions.some((option) => option.name === defaultModel)
+        const name = String(defaultModel)
+        const exists = filteredOptions.some((option) => option.name === name)
         if (!exists) {
           filteredOptions.push({
-            id: defaultModel || '',
-            name: defaultModel || defaultModel || '',
+            id: name,
+            name: name,
             checked: true,
             type: 'standard',
             apiProvider: 'default'
@@ -882,7 +1072,19 @@ const loadModelOptions = async () => {
         }
       })
 
-      // Ensure loaded data contains all necessary properties
+      lockedModelNames.value.forEach((name) => {
+        const exists = filteredOptions.some((option) => option.name === name)
+        if (!exists) {
+          filteredOptions.push({
+            id: name,
+            name: name,
+            checked: true,
+            type: 'standard',
+            apiProvider: 'default'
+          })
+        }
+      })
+
       modelOptions.value = filteredOptions.map((option) => ({
         id: option.id || '',
         name: option.name || '',
@@ -891,7 +1093,6 @@ const loadModelOptions = async () => {
         apiProvider: option.apiProvider || 'default'
       }))
 
-      // Sort model list: built-in models first, user-defined models last
       sortModelOptions()
     }
     await saveModelOptions()
@@ -917,6 +1118,10 @@ const handleSave = async (provider) => {
     case 'deepseek':
       modelId = deepSeekModelId.value
       modelName = deepSeekModelId.value
+      break
+    case 'anthropic':
+      modelId = anthropicModelId.value
+      modelName = anthropicModelId.value
       break
     case 'openai':
       modelId = openAiModelId.value
@@ -958,6 +1163,9 @@ const handleSave = async (provider) => {
       break
     case 'deepseek':
       await saveDeepSeekConfig()
+      break
+    case 'anthropic':
+      await saveAnthropicConfig()
       break
     case 'openai':
       await saveOpenAiConfig()
@@ -1032,6 +1240,12 @@ const handleSave = async (provider) => {
   margin-top: 8px;
   font-size: 12px;
   color: var(--text-color-tertiary);
+}
+
+.url-preview {
+  margin-top: 4px;
+  word-break: break-all;
+  opacity: 0.75;
 }
 
 // Unified component styles
@@ -1290,6 +1504,16 @@ const handleSave = async (provider) => {
 
 .model-item:hover {
   background-color: var(--text-color-septenary);
+}
+
+.locked-model-item {
+  opacity: 0.6;
+}
+
+.locked-model-icon {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--text-color-tertiary);
 }
 
 .remove-button {
