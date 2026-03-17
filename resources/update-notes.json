@@ -2,6 +2,20 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
+      "version": "2026.03.17",
+      "date": "2026-03-17",
+      "highlights": {
+        "zh-CN": [
+          "修复：Windows 版本启动时 ffmpeg.dll 完整性检查错误",
+          "更新 Electron 41.0.2 的运行时哈希值验证"
+        ],
+        "en-US": [
+          "Fix: Windows startup ffmpeg.dll integrity check error",
+          "Updated runtime hash verification for Electron 41.0.2"
+        ]
+      }
+    },
+    {
       "version": "2026.03.16",
       "date": "2026-03-16",
       "highlights": {

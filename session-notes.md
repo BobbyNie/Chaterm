@@ -307,5 +307,39 @@ The following upstream features were excluded as they require cloud services:
 
 1. **Merge Conflicts:** When syncing upstream, carefully review each conflict to preserve intranet-specific modifications while accepting valuable upstream changes.
 2. **TypeScript Errors:** Cloud service imports that are unused in intranet edition need to be removed to pass type checking.
-3. **Electron Updates:** When Electron version changes, ffmpeg.dll hash must be updated in `scripts/verify-ffmpeg.js`.
+3. **Electron Updates:** When Electron version changes, ffmpeg.dll hash must be updated in **both** `scripts/verify-ffmpeg.js` (build-time) AND `src/main/index.ts` (runtime).
 4. **Documentation:** All three language README files (EN, ZH, JA) should be updated together for consistency.
+
+---
+
+## Hotfix: 2026-03-17
+
+### Issue
+Windows version failed to start with error:
+```
+System integrity check failed (ffmpeg.dll). The application files may have been tampered with. Application will terminate.
+```
+
+### Root Cause
+When Electron was upgraded to 41.0.2 during the 2026-03-16 sync, the ffmpeg.dll hash was updated in `scripts/verify-ffmpeg.js` (build-time check), but **missed** in `src/main/index.ts` (runtime check).
+
+### Fix
+Updated `src/main/index.ts` line 165:
+```javascript
+// Old (incorrect)
+const KNOWN_HASH = 'BE2661FF1473E6A297121986C5100D6EC28FADEB3C74DD0407E4E3CD558C44C5'
+
+// New (correct for Electron 41.0.2)
+const KNOWN_HASH = '2EE497A8D8917861683337C10CDA719EE019F5483B509EFFC02A0390A52E8947'
+```
+
+### Commit
+- `07f44983` - fix: update ffmpeg.dll hash in runtime check for Electron 41.0.2
+
+### Release
+- **Version:** v2026.03.17
+- **URL:** https://github.com/BobbyNie/Chaterm/releases/tag/v2026.03.17
+- **Artifacts:**
+  - `chaterm-2026.3.17-cn-setup-x64.exe` (Windows)
+  - `chaterm-2026.3.17-cn-macos-arm64.zip` (macOS Apple Silicon)
+  - `chaterm-2026.3.17-cn-macos-x64.zip` (macOS Intel)
