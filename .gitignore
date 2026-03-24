@@ -35,3 +35,5 @@ test_data/
 coverage/
 .Trae/
 .worktrees/
+.vitest-attachments/
+**/__screenshots__/
