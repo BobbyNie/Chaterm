@@ -221,7 +221,7 @@ const files = (key) => {
 }
 
 const kubernetes = () => {
-  // K8s feature is under development, no action on click
+  menuClick('kubernetes')
 }
 const api = (window as any).api
 

@@ -488,7 +488,7 @@ onMounted(async () => {
               background: config.background?.image ? 'rgba(245, 245, 245, 0.82)' : '#f5f5f5',
               foreground: '#000000',
               cursor: '#000000',
-              cursorAccent: '#000000',
+              cursorAccent: '#f5f5f5',
               selectionBackground: '#add6ff80',
               selectionInactiveBackground: '#add6ff5a'
             }
@@ -496,7 +496,7 @@ onMounted(async () => {
               background: config.background?.image ? 'transparent' : '#141414',
               foreground: '#e0e0e0',
               cursor: '#e0e0e0',
-              cursorAccent: '#e0e0e0',
+              cursorAccent: '#141414',
               selectionBackground: 'rgba(255, 255, 255, 0.3)',
               selectionInactiveBackground: 'rgba(255, 255, 255, 0.2)'
             }
@@ -762,7 +762,7 @@ onMounted(async () => {
               background: config.background?.image ? 'rgba(245, 245, 245, 0.82)' : '#f5f5f5',
               foreground: '#000000',
               cursor: '#000000',
-              cursorAccent: '#000000',
+              cursorAccent: '#f5f5f5',
               selectionBackground: '#add6ff80',
               selectionInactiveBackground: '#add6ff5a'
             }
@@ -770,7 +770,7 @@ onMounted(async () => {
               background: configStore.getUserConfig.background.image ? 'transparent' : '#141414',
               foreground: '#e0e0e0',
               cursor: '#e0e0e0',
-              cursorAccent: '#e0e0e0',
+              cursorAccent: '#141414',
               selectionBackground: 'rgba(255, 255, 255, 0.3)',
               selectionInactiveBackground: 'rgba(255, 255, 255, 0.2)'
             }
@@ -1206,7 +1206,7 @@ const resizeEditor = (ed: editorData, rect: DOMRect) => {
 
 const autoExecuteCode = (payload: { command: string; tabId: string }) => {
   if (payload.tabId !== props.currentConnectionId) return
-  sendData(payload.command)
+  sendDataAutoSwitchTerminal(payload.command)
 }
 const handleResize = debounce(() => {
   if (fitAddon.value && terminal.value && terminalElement.value) {

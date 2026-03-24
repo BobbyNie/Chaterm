@@ -178,17 +178,34 @@
                             />
                           </template>
                         </a-button>
-                        <a-button
-                          type="text"
-                          class="feedback-btn summarize-btn"
-                          size="small"
-                          :title="$t('ai.summarizeToKnowledge')"
-                          @click="handleSummarizeToKnowledge(message)"
-                        >
-                          <template #icon>
-                            <BookOutlined />
-                          </template>
-                        </a-button>
+                        <a-tooltip :title="$t('ai.summarizeToKnowledge')">
+                          <a-button
+                            type="text"
+                            class="feedback-btn summarize-btn"
+                            size="small"
+                            @click="handleSummarizeToKnowledge(message)"
+                          >
+                            <template #icon>
+                              <BookOutlined />
+                            </template>
+                          </a-button>
+                        </a-tooltip>
+                        <a-tooltip :title="$t('ai.summarizeToSkill')">
+                          <a-button
+                            type="text"
+                            class="feedback-btn summarize-btn"
+                            size="small"
+                            @click="handleSummarizeToSkill(message)"
+                          >
+                            <template #icon>
+                              <img
+                                :src="skillsIcon"
+                                alt="skills"
+                                class="custom-icon"
+                              />
+                            </template>
+                          </a-button>
+                        </a-tooltip>
                       </div>
                     </div>
                     <MarkdownRenderer
@@ -564,23 +581,25 @@
                       <SearchOutlined style="color: #666" />
                     </template>
                   </a-input>
-                  <a-button
-                    size="small"
-                    class="favorites-button"
-                    type="text"
-                    @click="showOnlyFavorites = !showOnlyFavorites"
-                  >
-                    <template #icon>
-                      <StarFilled
-                        v-if="showOnlyFavorites"
-                        style="color: #faad14"
-                      />
-                      <StarOutlined
-                        v-else
-                        style="color: #999999"
-                      />
-                    </template>
-                  </a-button>
+                  <a-tooltip :title="$t('ai.favorites')">
+                    <a-button
+                      size="small"
+                      class="favorites-button"
+                      type="text"
+                      @click="showOnlyFavorites = !showOnlyFavorites"
+                    >
+                      <template #icon>
+                        <StarFilled
+                          v-if="showOnlyFavorites"
+                          style="color: #faad14"
+                        />
+                        <StarOutlined
+                          v-else
+                          class="star-outline-icon"
+                        />
+                      </template>
+                    </a-button>
+                  </a-tooltip>
                 </div>
                 <div class="history-virtual-list-container">
                   <template
@@ -767,6 +786,7 @@ import i18n from '@/locales'
 import eventBus from '@/utils/eventBus'
 import historyIcon from '@/assets/icons/history.svg'
 import plusIcon from '@/assets/icons/plus.svg'
+import skillsIcon from '@/assets/icons/skills.svg'
 
 interface TabInfo {
   id: string
@@ -837,7 +857,8 @@ const {
   handleFeedback,
   getMessageFeedback,
   handleTruncateAndSend,
-  handleSummarizeToKnowledge
+  handleSummarizeToKnowledge,
+  handleSummarizeToSkill
 } = useChatMessages(scrollToBottom, clearTodoState, markLatestMessageWithTodoUpdate, currentTodos, checkModelConfig)
 
 // Command interactions
