@@ -141,6 +141,22 @@ This fork periodically syncs with the upstream repository for bug fixes and impr
 - Intranet-specific changes (no login, guest user) are preserved
 - Security-related imports are removed when not needed
 
+#### Recent Sync History
+
+| Date | Upstream Version | Key Updates | Status |
+|------|-----------------|-------------|--------|
+| 2026-03-24 | 0.9.4 | K8s integration, Skills enhancements, Terminal improvements, Bug fixes | ✅ Synced |
+| 2026-03-17 | 0.9.3 | Initial intranet fork, CI/CD setup, Feature removals | ✅ Complete |
+
+**Latest Sync Details (2026-03-24):**
+- Merged 151 commits from upstream
+- Added K8s integration (741 lines)
+- Added Skills enhancements (stage chat attachment)
+- Fixed IndexedDB, file operations, shell handling
+- Updated dependencies (xterm.js 6.0, AWS SDK, openai 6.32.0)
+- All 129 intranet-specific tests passing
+- Total test coverage: 2536+ tests
+
 ## Development Guide
 
 ### Install Electron
