@@ -213,13 +213,6 @@
     </div>
   </div>
   <input
-    ref="fileInputRef"
-    type="file"
-    accept=".txt,.md,.js,.ts,.py,.java,.cpp,.c,.html,.css,.json,.xml,.yaml,.yml,.sql,.sh,.bat,.ps1,.log,.csv,.tsv"
-    style="display: none"
-    @change="handleFileSelected"
-  />
-  <input
     ref="imageInputRef"
     type="file"
     accept="image/jpeg,image/png,image/gif,image/webp"
@@ -244,7 +237,7 @@ import { useUserInteractions } from '../composables/useUserInteractions'
 import { parseContextDragPayload, useEditableContent } from '../composables/useEditableContent'
 import { AiTypeOptions } from '../composables/useEventBusListeners'
 import { getImageMediaType } from '../utils'
-import type { ContentPart, ContextDocRef, ContextPastChatRef, ContextCommandRef } from '@shared/WebviewMessage'
+import type { ContentPart, ContextDocRef, ContextPastChatRef, ContextCommandRef, ContextSkillRef } from '@shared/WebviewMessage'
 import type { HistoryItem, Host } from '../types'
 import { CloseOutlined, LaptopOutlined, LockOutlined } from '@ant-design/icons-vue'
 import uploadIcon from '@/assets/icons/upload.svg'
@@ -283,6 +276,7 @@ const { t } = useI18n()
 const {
   chatTextareaRef,
   currentTab,
+  currentChatId,
   chatTypeValue,
   chatAiModelValue,
   chatContainerScrollSignal,
@@ -412,7 +406,10 @@ const handleSendClick = async (type: string) => {
   }
 }
 
-const handleChipClick = async (chipType: 'doc' | 'chat' | 'command', ref: ContextDocRef | ContextPastChatRef | ContextCommandRef) => {
+const handleChipClick = async (
+  chipType: 'doc' | 'chat' | 'command' | 'skill',
+  ref: ContextDocRef | ContextPastChatRef | ContextCommandRef | ContextSkillRef
+) => {
   if (chipType === 'doc') {
     const docRef = ref as ContextDocRef
     if (docRef.type !== 'dir') {
@@ -423,6 +420,10 @@ const handleChipClick = async (chipType: 'doc' | 'chat' | 'command', ref: Contex
   if (chipType === 'command') {
     const cmdRef = ref as ContextCommandRef
     await context.openKbFile(cmdRef.path, cmdRef.label)
+    return
+  }
+  if (chipType === 'skill') {
+    // No special action for skill chip click
     return
   }
   const chatRef = ref as ContextPastChatRef
@@ -449,6 +450,7 @@ const {
   insertChipAtCursor,
   insertImageAtCursor,
   insertCommandChipWithPath,
+  insertSkillChip,
   handleEditableKeyDown,
   handleEditableInput,
   handleEditableClick
@@ -651,19 +653,21 @@ const lockedModelTooltip = computed(() => {
 
 // Use user interactions composable
 const {
-  fileInputRef,
   imageInputRef,
   autoSendAfterVoice,
   handleTranscriptionComplete,
   handleTranscriptionError,
   handleFileUpload,
-  handleFileSelected,
   handleImageUpload,
   handleImageSelected,
   hasClipboardImages,
   handlePasteImage
-} = useUserInteractions({ sendMessage: props.sendMessage, insertChipAtCursor, insertImagePart: insertImageAtCursor })
-void fileInputRef
+} = useUserInteractions({
+  sendMessage: props.sendMessage,
+  insertChipAtCursor,
+  insertImagePart: insertImageAtCursor,
+  getTaskId: () => currentChatId.value
+})
 void imageInputRef
 
 const focus = () => {
@@ -708,7 +712,13 @@ const inputPlaceholder = computed(() => {
 // ============================================================================
 
 onMounted(() => {
-  setChipInsertHandler(insertChipAtCursor)
+  setChipInsertHandler((chipType, ref, label) => {
+    if (chipType === 'skill') {
+      insertSkillChip(ref as ContextSkillRef, label)
+    } else {
+      insertChipAtCursor(chipType, ref as any, label)
+    }
+  })
   setImageInsertHandler(insertImageAtCursor)
   // Set command chip insert handler with path support
   setCommandChipInsertHandler((command: string, label: string, path: string) => {
@@ -945,6 +955,10 @@ onBeforeUnmount(() => {
 
   :deep(.mention-chip-chat) .mention-icon {
     color: #52c41a;
+  }
+
+  :deep(.mention-icon-svg) {
+    filter: var(--icon-filter);
   }
 
   :deep(.mention-label) {

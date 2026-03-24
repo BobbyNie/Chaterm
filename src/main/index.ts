@@ -65,6 +65,8 @@ import { getActualTheme, loadUserTheme } from './themeManager'
 import { getLoginBaseUrl, getEdition, getProtocolPrefix, getProtocolName } from './config/edition'
 import { TelemetrySetting } from '@shared/TelemetrySetting'
 import { registerKnowledgeBaseHandlers } from './services/knowledgebase'
+import { registerStageChatAttachmentHandlers } from './services/agent/stageChatAttachment'
+import { startKbSync, stopKbSync } from './services/knowledgebase/sync'
 import { setupInteractionIpcHandlers } from './agent/services/interaction-detector/ipc-handlers'
 import type { WebviewMessage } from '@shared/WebviewMessage'
 import type { SkillMetadata } from '@shared/skills'
@@ -162,7 +164,7 @@ app.whenReady().then(async () => {
       try {
         const crypto = require('crypto')
         const ffmpegPath = path.join(path.dirname(process.execPath), 'ffmpeg.dll')
-        const KNOWN_HASH = '2EE497A8D8917861683337C10CDA719EE019F5483B509EFFC02A0390A52E8947'
+        const KNOWN_HASH = 'CED08D56DA30DC9671C088870F8CD0820FB5B43D568BE5588D9934B883CCE43A'
 
         try {
           await fs.access(ffmpegPath)
@@ -766,6 +768,30 @@ ipcMain.handle('skills:import-zip', async (_event, zipPath: string, overwrite?: 
   }
 })
 
+ipcMain.handle('skills:read-content', async (_event, skillName: string) => {
+  try {
+    if (controller && controller.skillsManager) {
+      return await controller.skillsManager.readSkillContent(skillName)
+    }
+    throw new Error('Skills manager not initialized')
+  } catch (error) {
+    logger.error('Failed to read skill content', { error: error })
+    throw error
+  }
+})
+
+ipcMain.handle('skills:update', async (_event, skillName: string, metadata: any, content: string) => {
+  try {
+    if (controller && controller.skillsManager) {
+      return await controller.skillsManager.updateUserSkill(skillName, metadata, content)
+    }
+    throw new Error('Skills manager not initialized')
+  } catch (error) {
+    logger.error('Failed to update skill', { error: error })
+    throw error
+  }
+})
+
 // ==================== End Skills IPC Handlers ====================
 
 // Get all Cookies
@@ -825,6 +851,10 @@ ipcMain.handle('dialog:openFile', async (event, options) => {
   const { dialog } = require('electron')
   const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), options)
   return result
+})
+
+ipcMain.handle('app:getHomePath', () => {
+  return app.getPath('home')
 })
 
 ipcMain.handle('saveCustomBackground', async (_, sourcePath: string) => {
@@ -928,6 +958,7 @@ function updateNavigationState(): void {
 function setupIPC(): void {
   // KnowledgeBase module (local file-based KB) IPC handlers
   registerKnowledgeBaseHandlers()
+  registerStageChatAttachmentHandlers()
 
   ipcMain.handle('init-user-database', async (event, { uid }) => {
     try {
@@ -1114,10 +1145,17 @@ function setupIPC(): void {
       if (params?.key) {
         const row = db.getKeyValue(params.key)
         if (row && row.value) {
-          // Use safeParse to deserialize superjson formatted data
-          const { safeParse } = await import('./storage/db/json-serializer')
-          const parsedValue = await safeParse(row.value)
-          return { ...row, value: JSON.stringify(parsedValue) }
+          const { deserializeStoredKvValue } = await import('./storage/db/kv-serialization')
+          const deserialized = await deserializeStoredKvValue(row.value)
+          if (deserialized.source !== 'superjson') {
+            logger.warn('db:kv:get used compatibility fallback for stored KV value', {
+              key: params.key,
+              userId,
+              source: deserialized.source,
+              rawPrefix: typeof row.value === 'string' ? row.value.slice(0, 200) : row.value
+            })
+          }
+          return { ...row, value: JSON.stringify(deserialized.value) }
         }
         return row
       } else {
@@ -1180,6 +1218,25 @@ function setupIPC(): void {
     }
   })
 
+  // Handler 6: KV transaction (atomic batch write)
+  ipcMain.handle('db:kv:transaction', async (_event, ops: Array<{ action: 'set' | 'delete'; key: string; value?: string }>) => {
+    try {
+      let userId = getCurrentUserId()
+
+      if (!userId) {
+        userId = getGuestUserId()
+      }
+
+      const db = await ChatermDatabaseService.getInstance(userId)
+      const { serializeKvTransactionOps } = await import('./storage/db/kv-serialization')
+      const serializedOps = await serializeKvTransactionOps(ops)
+      await db.kvTransaction(serializedOps)
+    } catch (error) {
+      logger.error('db:kv:transaction error', { error: error })
+      throw error
+    }
+  })
+
   // Unified version related operation handler
   ipcMain.handle('version:operation', async (_event, operation: string, payload?: any) => {
     try {
@@ -1200,44 +1257,6 @@ function setupIPC(): void {
     } catch (error) {
       logger.error(`version:operation [${operation}] error`, { error: error })
 
-      throw error
-    }
-  })
-
-  // Editor configuration handlers
-  ipcMain.handle('get-editor-config', async () => {
-    try {
-      const configPath = join(app.getPath('userData'), 'setting', 'editor-config.json')
-      try {
-        const configData = await fs.readFile(configPath, 'utf-8')
-        return JSON.parse(configData)
-      } catch (error: any) {
-        // If file doesn't exist, return null to use default config
-        if (error.code === 'ENOENT') {
-          return null
-        }
-        throw error
-      }
-    } catch (error) {
-      logger.error('Failed to get editor config:', { error: error })
-      throw error
-    }
-  })
-
-  ipcMain.handle('save-editor-config', async (_event, config) => {
-    try {
-      const configPath = join(app.getPath('userData'), 'setting', 'editor-config.json')
-      const configDir = join(app.getPath('userData'), 'setting')
-
-      // Ensure directory exists
-      await fs.mkdir(configDir, { recursive: true })
-
-      // Save config
-      await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
-
-      return { success: true }
-    } catch (error) {
-      logger.error('Failed to save editor config:', { error: error })
       throw error
     }
   })
@@ -1343,6 +1362,7 @@ function setupIPC(): void {
         if (syncStateManager) {
           syncStateManager.enableSync(uid)
         }
+        startKbSync()
       } else {
         // Disable sync
         if (dataSyncController) {
@@ -1352,6 +1372,7 @@ function setupIPC(): void {
           }
 
           logger.info('Stopping data sync service...')
+          await stopKbSync()
           await dataSyncController.destroy()
           dataSyncController = null
           logger.info('Data sync service stopped')
@@ -2508,6 +2529,87 @@ ipcMain.handle('organization-asset-comment', async (_, data) => {
     return result
   } catch (error) {
     logger.error('Main process organization-asset-comment error', { error: error })
+    return { data: { message: 'failed', error: error instanceof Error ? error.message : String(error) } }
+  }
+})
+
+// Organization asset management IPC handlers
+ipcMain.handle('get-organization-assets', async (_, data) => {
+  try {
+    const { organizationUuid, search, page, pageSize } = data
+
+    if (!organizationUuid) {
+      return { data: { message: 'failed', error: 'organizationUuid is required' } }
+    }
+
+    const result = chatermDbService.getOrganizationAssets(organizationUuid, search, page, pageSize)
+    return result
+  } catch (error) {
+    logger.error('Main process get-organization-assets error', { error: error })
+    return { data: { message: 'failed', error: error instanceof Error ? error.message : String(error) } }
+  }
+})
+
+ipcMain.handle('create-organization-asset', async (_, data) => {
+  try {
+    const { organizationUuid, hostname, host, comment } = data
+
+    if (!organizationUuid || !hostname || !host) {
+      return { data: { message: 'failed', error: 'organizationUuid, hostname, and host are required' } }
+    }
+
+    const result = chatermDbService.createOrganizationAsset(organizationUuid, { hostname, host, comment })
+    return result
+  } catch (error) {
+    logger.error('Main process create-organization-asset error', { error: error })
+    return { data: { message: 'failed', error: error instanceof Error ? error.message : String(error) } }
+  }
+})
+
+ipcMain.handle('update-organization-asset', async (_, data) => {
+  try {
+    const { uuid, hostname, host, comment } = data
+
+    if (!uuid) {
+      return { data: { message: 'failed', error: 'uuid is required' } }
+    }
+
+    const result = chatermDbService.updateOrganizationAsset(uuid, { hostname, host, comment })
+    return result
+  } catch (error) {
+    logger.error('Main process update-organization-asset error', { error: error })
+    return { data: { message: 'failed', error: error instanceof Error ? error.message : String(error) } }
+  }
+})
+
+ipcMain.handle('delete-organization-asset', async (_, data) => {
+  try {
+    const { uuid } = data
+
+    if (!uuid) {
+      return { data: { message: 'failed', error: 'uuid is required' } }
+    }
+
+    const result = chatermDbService.deleteOrganizationAsset(uuid)
+    return result
+  } catch (error) {
+    logger.error('Main process delete-organization-asset error', { error: error })
+    return { data: { message: 'failed', error: error instanceof Error ? error.message : String(error) } }
+  }
+})
+
+ipcMain.handle('batch-delete-organization-assets', async (_, data) => {
+  try {
+    const { uuids } = data
+
+    if (!uuids || !Array.isArray(uuids) || uuids.length === 0) {
+      return { data: { message: 'failed', error: 'uuids array is required' } }
+    }
+
+    const result = chatermDbService.batchDeleteOrganizationAssets(uuids)
+    return result
+  } catch (error) {
+    logger.error('Main process batch-delete-organization-assets error', { error: error })
     return { data: { message: 'failed', error: error instanceof Error ? error.message : String(error) } }
   }
 })
