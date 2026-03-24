@@ -39,3 +39,4 @@ coverage/
 .vitest-attachments/
 **/__screenshots__/
 .claude/settings.local.json
+backups/
