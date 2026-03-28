@@ -305,6 +305,7 @@ Before committing code, must confirm:
 5. [OK] If database is modified, migration files have been created
 6. [OK] If new IPC channels are added, types have been defined in `src/preload/index.d.ts`
 7. [OK] No sensitive information committed (keys, tokens, private domains)
+8. [OK] If Electron version changed, update `KNOWN_HASH` in `scripts/verify-ffmpeg.js` to match the new version's `ffmpeg.dll` SHA256 hash (Windows build requires this)
 
 ## Security Considerations
 
