@@ -61,6 +61,7 @@ export default {
     splitRightInner: 'Rechts teilen (Inner)',
     splitDownInner: 'Unten teilen (Inner)',
     clone: 'Klonen',
+    forkSsh: 'SSH-Kanal forken',
     clearTerm: 'Bildschirm löschen',
     shrotenName: 'Host-Name verkürzen',
     fontsize: 'Fontsize',
@@ -1248,6 +1249,19 @@ export default {
     welcomeMessage: '{username}, Willkommen bei Chaterm',
     reconnecting: 'Erneut verbinden...',
     terminalConnectionError: 'Verbindungsfehler. Bitte prüfen Sie, ob der Terminal-Server läuft.',
+    autoReconnect: {
+      tag: 'Auto-Neuverbindung',
+      networkIssue: 'Netzwerkproblem',
+      networkOfflineWaitingRestoration: 'Das Netzwerk ist offline. Warte auf Wiederherstellung der Verbindung...',
+      stoppedAfterMaxAttempts: 'Nach {max} fehlgeschlagenen Versuchen gestoppt. Drücke Enter, um manuell erneut zu versuchen.',
+      attemptProgress: 'Versuch {current}/{max}...',
+      connectedOnAttempt: 'Bei Versuch {current}/{max} erfolgreich verbunden.',
+      attemptFailed: 'Versuch {current}/{max} fehlgeschlagen.',
+      retryingInSeconds: 'Erneuter Versuch in {seconds}s...',
+      networkRestoredStartReconnect: 'Netzwerk wiederhergestellt. Starte Neuverbindung...',
+      detectedNetworkDisconnect: 'Netzwerkunterbrechung erkannt ({reason}).',
+      networkOfflineWaitingReconnect: 'Das Netzwerk ist offline. Warte auf Neuverbindung...'
+    },
     jumpserver: {
       connectingToBastionHost: 'Verbindung zu remote bastion host...',
       connectedToBastionHost: 'Erfolgreich verbunden zu bastion host, bitte warten...',
@@ -1441,7 +1455,10 @@ export default {
     editSkill: 'Skill bearbeiten',
     readContentError: 'Skill-Inhalt konnte nicht gelesen werden',
     updateSuccess: 'Skill erfolgreich aktualisiert',
-    updateError: 'Skill konnte nicht aktualisiert werden'
+    updateError: 'Skill konnte nicht aktualisiert werden',
+    exportSkill: 'Skill exportieren',
+    exportSuccess: 'Skill "{name}" erfolgreich exportiert',
+    exportError: 'Skill konnte nicht exportiert werden'
   },
   knowledgeCenter: {
     title: 'Wissensdatenbank',

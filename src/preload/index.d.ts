@@ -189,13 +189,17 @@ interface ApiType {
   connectAssetInfo: (data: { uuid: string }) => Promise<any>
   openBrowserWindow: (url: string) => Promise<void>
   connect: (connectionInfo: any) => Promise<any>
+  forkSession: (params: { sourceConnectionId: string; newConnectionId: string; host: string; port: number; username: string }) => Promise<any>
   shell: (params: any) => Promise<any>
   writeToShell: (params: any) => Promise<any>
   disconnect: (params: any) => Promise<any>
   selectPrivateKey: () => Promise<any>
   onShellData: (id: string, callback: (data: any) => void) => () => void
   onShellError: (id: string, callback: (data: any) => void) => () => void
-  onShellClose: (id: string, callback: () => void) => () => void
+  onShellClose: (
+    id: string,
+    callback: (data?: { reason: 'manual' | 'network' | 'unknown'; isNetworkDisconnect: boolean; errorCode?: string; errorMessage?: string }) => void
+  ) => () => void
   recordTerminalState: (params: any) => Promise<any>
   recordCommand: (params: any) => Promise<any>
   sshSftpList: (opts: { id: string; path: string }) => Promise<any>
@@ -248,6 +252,8 @@ interface ApiType {
     highlights?: Record<string, string[]> | string[]
   } | null>
   onSystemThemeChanged: (callback: (theme: string) => void) => () => void
+  onXshellWakeup: (callback: (payload: any) => void) => () => void
+  consumePendingXshellWakeups: () => Promise<any[]>
   // Keyboard-interactive authentication
   onKeyboardInteractiveRequest: (callback: (data: any) => void) => () => void
   onKeyboardInteractiveTimeout: (callback: (data: any) => void) => () => void
@@ -295,6 +301,11 @@ interface ApiType {
   }>
   readSkillContent: (skillName: string) => Promise<{ metadata: any; content: string }>
   updateSkill: (skillName: string, metadata: any, content: string) => Promise<void>
+  exportSkillZip: (skillName: string) => Promise<{
+    success: boolean
+    filePath?: string
+    error?: string
+  }>
   onSkillsUpdate: (callback: (skills: any[]) => void) => () => void
 
   // IndexedDB migration related API

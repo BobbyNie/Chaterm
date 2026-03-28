@@ -51,6 +51,8 @@ import fs from 'fs'
 import { SSHAgentManager } from './ssh-agent/ChatermSSHAgent'
 import { getAlgorithmsByAssetType } from './algorithms'
 import { connectBastionByType, shellBastionSession, resizeBastionSession, writeBastionSession, disconnectBastionSession } from './bastionPlugin'
+import { shouldSkipPostConnectProbe } from './postConnectProbePolicy'
+import { sftpConnectionInfoMap } from './sftpTransfer'
 
 // Hybrid buffer strategy configuration
 const FLUSH_CONFIG = {
@@ -119,6 +121,144 @@ export const connectionStatus = new Map()
 
 export const sshSessionPids = new Map<string, number>()
 
+// Track how a shell session ended so renderer can decide whether to auto reconnect.
+type ShellCloseReason = 'manual' | 'network' | 'unknown'
+
+type ShellCloseInfoPayload = {
+  reason: ShellCloseReason
+  isNetworkDisconnect: boolean
+  errorCode?: string
+  errorMessage?: string
+}
+
+const manualDisconnectSessions = new Set<string>()
+// Per-session close metadata consumed once when shell close is emitted to renderer.
+const lastConnectionErrorBySession = new Map<string, { errorCode?: string; errorMessage?: string; isNetwork: boolean }>()
+const pendingShellCloseInfoBySession = new Map<string, ShellCloseInfoPayload>()
+
+// Known socket/network error codes that indicate network interruption.
+const NETWORK_ERROR_CODES = new Set([
+  'ETIMEDOUT',
+  'ECONNRESET',
+  'ECONNABORTED',
+  'EPIPE',
+  'ENETDOWN',
+  'ENETUNREACH',
+  'EHOSTDOWN',
+  'EHOSTUNREACH',
+  'ECONNREFUSED'
+])
+
+// Message pattern fallback for errors that do not expose a stable error code.
+const NETWORK_ERROR_PATTERNS = [
+  /timed out/i,
+  /keepalive/i,
+  /connection lost/i,
+  /connection reset/i,
+  /socket hang up/i,
+  /network is unreachable/i,
+  /not reachable/i,
+  /broken pipe/i
+]
+
+// Classify whether an SSH/connect error is likely caused by network break.
+const isLikelyNetworkDisconnect = (err: any): boolean => {
+  const code = String(err?.code || err?.errno || '').toUpperCase()
+  const message = String(err?.message || '')
+
+  if (code && NETWORK_ERROR_CODES.has(code)) {
+    return true
+  }
+
+  return NETWORK_ERROR_PATTERNS.some((pattern) => pattern.test(message))
+}
+
+// Cache close reason so shell close IPC can report a precise disconnect reason.
+const setPendingShellCloseInfo = (sessionId: string, info: ShellCloseInfoPayload) => {
+  if (!sessionId) return
+  pendingShellCloseInfoBySession.set(sessionId, info)
+  logger.info('Pending shell close info updated', {
+    event: 'ssh.shell.close.pending',
+    connectionId: sessionId,
+    reason: info.reason,
+    isNetworkDisconnect: info.isNetworkDisconnect,
+    errorCode: info.errorCode,
+    errorMessage: info.errorMessage
+  })
+}
+
+// Record the latest connection failure for later close/end event classification.
+const recordSessionConnectionError = (sessionId: string, err: any) => {
+  if (!sessionId) return
+  const errorCode = String(err?.code || err?.errno || '').toUpperCase() || undefined
+  const errorMessage = String(err?.message || '').trim() || undefined
+  const isNetwork = isLikelyNetworkDisconnect(err)
+
+  lastConnectionErrorBySession.set(sessionId, {
+    errorCode,
+    errorMessage,
+    isNetwork
+  })
+
+  setPendingShellCloseInfo(sessionId, {
+    reason: isNetwork ? 'network' : 'unknown',
+    isNetworkDisconnect: isNetwork,
+    errorCode,
+    errorMessage
+  })
+
+  logger.info('Session connection error recorded', {
+    event: 'ssh.session.error.recorded',
+    connectionId: sessionId,
+    errorCode,
+    errorMessage,
+    isNetworkDisconnect: isNetwork
+  })
+}
+
+// Clear reconnect-related transient state for a session.
+const clearSessionConnectionState = (sessionId: string) => {
+  if (!sessionId) return
+  manualDisconnectSessions.delete(sessionId)
+  lastConnectionErrorBySession.delete(sessionId)
+  pendingShellCloseInfoBySession.delete(sessionId)
+}
+
+// Consume close metadata once to prevent duplicate reconnect decisions.
+const consumeShellCloseInfo = (sessionId: string): ShellCloseInfoPayload => {
+  if (!sessionId) {
+    return { reason: 'unknown', isNetworkDisconnect: false }
+  }
+
+  if (manualDisconnectSessions.has(sessionId)) {
+    clearSessionConnectionState(sessionId)
+    return {
+      reason: 'manual',
+      isNetworkDisconnect: false
+    }
+  }
+
+  const pending = pendingShellCloseInfoBySession.get(sessionId)
+  if (pending) {
+    pendingShellCloseInfoBySession.delete(sessionId)
+    lastConnectionErrorBySession.delete(sessionId)
+    return pending
+  }
+
+  const lastError = lastConnectionErrorBySession.get(sessionId)
+  if (lastError) {
+    lastConnectionErrorBySession.delete(sessionId)
+    return {
+      reason: lastError.isNetwork ? 'network' : 'unknown',
+      isNetworkDisconnect: lastError.isNetwork,
+      errorCode: lastError.errorCode,
+      errorMessage: lastError.errorMessage
+    }
+  }
+
+  return { reason: 'unknown', isNetworkDisconnect: false }
+}
+
 // Set KeyboardInteractive authentication timeout (milliseconds)
 export const KeyboardInteractiveTimeout = 300000 // 5 minutes timeout
 const MaxKeyboardInteractiveAttempts = 5 // Max KeyboardInteractive attempts
@@ -153,6 +293,40 @@ export const registerReusableSshSession = (poolKey: string, sessionId: string) =
   if (reusableConn) {
     reusableConn.sessions.add(sessionId)
   }
+}
+
+// ============================================================================
+// Wakeup Agent Reuse — Pool Entry & Lookup
+// ============================================================================
+// Technical route (wakeup connection pooling for agent reuse):
+//
+//   Xshell wakeup -> renderer openTerminalFromXshellWakeup -> currentClickServer(node)
+//   -> sshConnect.vue sets wakeupSource on connectionInfo
+//   -> handleAttemptConnection conn.on('ready') detects wakeupSource
+//   -> saves connection to sshConnectionPool with hasMfaAuth:true
+//   -> agent later calls findWakeupConnectionInfoByHost(hostIP) to locate the pooled connection
+//
+// Why not SSH exec: Wakeup bastion servers intercept exec channels as tunnels;
+// command arguments are ignored. Only conn.shell() + marker extraction works.
+//
+// Key constraint: wakeup connections use password auth (not keyboard-interactive),
+// so the pool-save condition checks `connectionInfo.wakeupSource` in addition to
+// the original `keyboardInteractiveOpts.has(id)` check.
+// ============================================================================
+
+// Find a wakeup (MFA-authed) connection in the pool by host IP.
+// Returns { host, port, username } so the agent can build a ConnectionInfo
+// when the asset UUID is not in the database (wakeup-created tabs).
+export const findWakeupConnectionInfoByHost = (host: string): { host: string; port: number; username: string } | null => {
+  for (const [, entry] of sshConnectionPool) {
+    if (entry.hasMfaAuth && entry.host === host) {
+      const client = entry.conn as Client | undefined
+      if (client && !(client as any)?._sock?.destroyed) {
+        return { host: entry.host, port: entry.port, username: entry.username }
+      }
+    }
+  }
+  return null
 }
 
 export const releaseReusableSshSession = (poolKey: string, sessionId: string) => {
@@ -266,11 +440,27 @@ export const attemptSecondaryConnection = async (event, connectionInfo, existing
     return
   }
 
-  const readyResult: { hasSudo?: boolean; commandList?: string[] } = {}
+  if (shouldSkipPostConnectProbe(connectionInfo)) {
+    const readyResult = {
+      hasSudo: false,
+      commandList: []
+    }
+    event.sender.send(`ssh:connect:data:${id}`, readyResult)
+    if (keyboardInteractiveOpts.has(id)) {
+      keyboardInteractiveOpts.delete(id)
+    }
+    logger.info('Skip post-connect probe for wakeup/direct session', {
+      event: 'ssh.connect.probe.skip',
+      connectionId: id,
+      source: connectionInfo?.wakeupSource || connectionInfo?.source || 'unknown'
+    })
+    return
+  }
 
+  const readyResult: { hasSudo?: boolean; commandList?: string[] } = {}
   if (existingConn) {
     try {
-      await initSftpOnConnection(existingConn, id)
+      await initSftpOnConnection(existingConn, id, connectionInfo)
     } catch {
       connectionStatus.set(id, { sftpAvailable: false, sftpError: 'SFTP connection failed' })
     }
@@ -431,6 +621,7 @@ const handleAttemptConnection = async (event, connectionInfo, resolve, reject, r
     proxyCommand
   } = connectionInfo
   retryCount++
+  clearSessionConnectionState(id)
 
   logger.info('Starting SSH connection attempt', {
     event: 'ssh.connect.start',
@@ -474,6 +665,7 @@ const handleAttemptConnection = async (event, connectionInfo, resolve, reject, r
   const conn = new Client()
 
   conn.on('ready', () => {
+    clearSessionConnectionState(id)
     sshConnections.set(id, conn) // Save connection object
     connectionStatus.set(id, { isVerified: true })
     connectionEvents.emit(`connection-status-changed:${id}`, { isVerified: true })
@@ -481,11 +673,15 @@ const handleAttemptConnection = async (event, connectionInfo, resolve, reject, r
     // Check if keyboard-interactive authentication was used
     // Must check before attemptSecondaryConnection as it will clear keyboardInteractiveOpts
     const hasKeyboardInteractive = keyboardInteractiveOpts.has(id)
+    const isWakeupConnection = !!connectionInfo.wakeupSource
+    const shouldSaveToPool = hasKeyboardInteractive || isWakeupConnection
 
-    // If keyboard-interactive authentication was used, immediately save to connection pool for future reuse
-    if (hasKeyboardInteractive) {
+    // Save to connection pool for future agent reuse when:
+    // 1. keyboard-interactive (MFA/OTP) authentication was used, OR
+    // 2. this is a wakeup connection (password auth but needs agent reuse)
+    if (shouldSaveToPool) {
       const poolKey = getConnectionPoolKey(host, port || 22, username)
-      logger.info('Saving MFA authenticated connection to pool', { event: 'ssh.pool.save', poolKey })
+      logger.info('Saving connection to pool', { event: 'ssh.pool.save', poolKey, reason: isWakeupConnection ? 'wakeup' : 'keyboard-interactive' })
 
       sshConnectionPool.set(poolKey, {
         conn: conn,
@@ -522,6 +718,7 @@ const handleAttemptConnection = async (event, connectionInfo, resolve, reject, r
   })
 
   conn.on('error', (err) => {
+    recordSessionConnectionError(id, err)
     connectionStatus.set(id, { isVerified: false })
 
     connectionEvents.emit(`connection-status-changed:${id}`, { isVerified: false })
@@ -546,6 +743,7 @@ const handleAttemptConnection = async (event, connectionInfo, resolve, reject, r
     port: port || 22,
     username,
     keepaliveInterval: 10000, // Keep connection alive
+    keepaliveCountMax: 3,
     tryKeyboard: true, // Enable keyboard interactive authentication
     readyTimeout: KeyboardInteractiveTimeout, // Connection timeout, 30 seconds
     algorithms
@@ -609,6 +807,64 @@ const handleAttemptConnection = async (event, connectionInfo, resolve, reject, r
     logger.error('Connection configuration error', { event: 'ssh.config.error', error: err })
     reject(new Error(`Connection configuration error: ${err}`))
   }
+
+  // Classify unexpected transport close and preserve reason for renderer reconnect logic.
+  conn.on('close', () => {
+    if (manualDisconnectSessions.has(id)) {
+      logger.info('SSH connection close ignored (manual disconnect)', {
+        event: 'ssh.conn.close.manual',
+        connectionId: id
+      })
+      return
+    }
+
+    const existing = pendingShellCloseInfoBySession.get(id)
+    if (existing) {
+      return
+    }
+
+    const lastError = lastConnectionErrorBySession.get(id)
+    setPendingShellCloseInfo(id, {
+      reason: lastError?.isNetwork ? 'network' : 'unknown',
+      isNetworkDisconnect: !!lastError?.isNetwork,
+      errorCode: lastError?.errorCode,
+      errorMessage: lastError?.errorMessage || 'SSH connection closed'
+    })
+    logger.info('SSH connection close captured', {
+      event: 'ssh.conn.close',
+      connectionId: id,
+      hasLastError: !!lastError
+    })
+  })
+
+  // Some network drops surface as "end"; handle it the same as "close".
+  conn.on('end', () => {
+    if (manualDisconnectSessions.has(id)) {
+      logger.info('SSH connection end ignored (manual disconnect)', {
+        event: 'ssh.conn.end.manual',
+        connectionId: id
+      })
+      return
+    }
+
+    const existing = pendingShellCloseInfoBySession.get(id)
+    if (existing) {
+      return
+    }
+
+    const lastError = lastConnectionErrorBySession.get(id)
+    setPendingShellCloseInfo(id, {
+      reason: lastError?.isNetwork ? 'network' : 'unknown',
+      isNetworkDisconnect: !!lastError?.isNetwork,
+      errorCode: lastError?.errorCode,
+      errorMessage: lastError?.errorMessage || 'SSH connection ended'
+    })
+    logger.info('SSH connection end captured', {
+      event: 'ssh.conn.end',
+      connectionId: id,
+      hasLastError: !!lastError
+    })
+  })
 }
 export const getUniqueRemoteName = async (sftp: SFTPWrapper, remoteDir: string, originalName: string, isDir: boolean): Promise<string> => {
   const list = await new Promise<{ filename: string; longname: string; attrs: any }[]>((resolve, reject) => {
@@ -632,8 +888,32 @@ export const getUniqueRemoteName = async (sftp: SFTPWrapper, remoteDir: string, 
   return finalName
 }
 
+const findReusableSftpRecord = (id: string): any => {
+  const direct = sftpConnections.get(id)
+  if (direct) return direct
+
+  if (!id) return null
+
+  const prefix = id.substring(0, id.lastIndexOf(':') + 1)
+
+  for (const [existingId, existingRecord] of sftpConnections.entries()) {
+    const sessionPart = existingId.substring(existingId.lastIndexOf(':') + 1)
+    if (existingId.startsWith(prefix) && sessionPart.startsWith('files-')) {
+      return existingRecord
+    }
+  }
+
+  for (const [existingId, existingRecord] of sftpConnections.entries()) {
+    if (existingId.startsWith(prefix)) {
+      return existingRecord
+    }
+  }
+
+  return null
+}
+
 export const getSftpConnection = (id: string): any => {
-  const sftpConnectionInfo = sftpConnections.get(id)
+  const sftpConnectionInfo = findReusableSftpRecord(id)
 
   if (!sftpConnectionInfo) {
     logger.debug('SFTP connection not found', { event: 'ssh.sftp.notfound', connectionId: id })
@@ -641,7 +921,11 @@ export const getSftpConnection = (id: string): any => {
   }
 
   if (!sftpConnectionInfo.isSuccess || !sftpConnectionInfo.sftp) {
-    logger.debug('SFTP not available', { event: 'ssh.sftp.unavailable', connectionId: id, error: sftpConnectionInfo.error || 'Unknown error' })
+    logger.debug('SFTP not available', {
+      event: 'ssh.sftp.unavailable',
+      connectionId: id,
+      error: sftpConnectionInfo.error || 'Unknown error'
+    })
     return null
   }
 
@@ -672,7 +956,16 @@ export const registerSSHHandlers = () => {
       sshType: sshType || 'ssh',
       host: connectionInfo?.host || connectionInfo?.asset_ip,
       port: connectionInfo?.port || 22,
-      username: connectionInfo?.username
+      username: connectionInfo?.username,
+      targetIp: connectionInfo?.targetIp,
+      targetAsset: connectionInfo?.targetAsset,
+      source: connectionInfo?.source || 'unknown',
+      wakeupSource: connectionInfo?.wakeupSource || 'unknown',
+      disablePostConnectProbe: connectionInfo?.disablePostConnectProbe === true,
+      needProxy: connectionInfo?.needProxy === true,
+      hasProxyCommand: !!connectionInfo?.proxyCommand,
+      hasPassword: typeof connectionInfo?.password === 'string' && connectionInfo.password.length > 0,
+      hasPrivateKey: typeof connectionInfo?.privateKey === 'string' && connectionInfo.privateKey.length > 0
     })
 
     if (sshType === 'jumpserver') {
@@ -710,7 +1003,7 @@ export const registerSSHHandlers = () => {
     return false
   })
 
-  ipcMain.handle('ssh:shell', async (event, { id, terminalType }) => {
+  ipcMain.handle('ssh:shell', async (event, { id, terminalType, cols, rows }) => {
     // Check if it's a JumpServer connection
     if (jumpserverConnections.has(id)) {
       // Use JumpServer shell handling
@@ -841,6 +1134,13 @@ export const registerSSHHandlers = () => {
 
     const isConnected = () => conn && conn['_sock'] && !conn['_sock'].destroyed
 
+    // Build pty options with initial window size when available
+    const ptyOpts: Record<string, unknown> = { term: termType }
+    if (cols && rows) {
+      ptyOpts.cols = cols
+      ptyOpts.rows = rows
+    }
+
     const handleStream = (stream, method: 'shell' | 'exec') => {
       shellStreams.set(id, stream)
 
@@ -914,10 +1214,23 @@ export const registerSSHHandlers = () => {
         event.sender.send(`ssh:shell:stderr:${id}`, data.toString('utf8'))
       })
 
+      stream.on('error', (err) => {
+        recordSessionConnectionError(id, err)
+      })
+
       stream.on('close', () => {
         flushBuffer()
-        logger.debug('Shell stream closed', { event: 'ssh.stream.close', connectionId: id, method })
-        event.sender.send(`ssh:shell:close:${id}`)
+        const closeInfo = consumeShellCloseInfo(id)
+        logger.info('Shell stream closed', {
+          event: 'ssh.stream.close',
+          connectionId: id,
+          method,
+          closeReason: closeInfo.reason,
+          isNetworkDisconnect: closeInfo.isNetworkDisconnect,
+          errorCode: closeInfo.errorCode,
+          errorMessage: closeInfo.errorMessage
+        })
+        event.sender.send(`ssh:shell:close:${id}`, closeInfo)
         shellStreams.delete(id)
       })
     }
@@ -946,7 +1259,7 @@ export const registerSSHHandlers = () => {
       setTimeout(() => {
         if (!isConnected()) return reject(new Error('The connection has been disconnected after a delay'))
 
-        conn.shell({ term: termType }, (err, stream) => {
+        conn.shell(ptyOpts, (err, stream) => {
           if (err) {
             logger.warn('Shell start error, falling back to exec', { event: 'ssh.shell.error', connectionId: id, error: err.message })
             return tryExecFallback(fallbackExecs, resolve, reject)
@@ -1203,6 +1516,60 @@ export const registerSSHHandlers = () => {
     })
   })
 
+  ipcMain.handle('ssh:fork-session', async (_event, { sourceConnectionId, newConnectionId, host, port, username }) => {
+    logger.info('Received SSH fork-session request', {
+      event: 'ssh.fork-session.start',
+      sourceConnectionId,
+      newConnectionId
+    })
+
+    const conn = sshConnections.get(sourceConnectionId)
+    if (!conn) {
+      logger.warn('Source connection not found for fork', { event: 'ssh.fork-session.notfound', sourceConnectionId })
+      return { status: 'error', message: 'Source connection not found' }
+    }
+
+    // Verify the underlying socket is still alive
+    if (conn._sock && conn._sock.destroyed) {
+      logger.warn('Source connection socket is destroyed', { event: 'ssh.fork-session.destroyed', sourceConnectionId })
+      return { status: 'error', message: 'Source connection is no longer active' }
+    }
+
+    // Register the new session with the same underlying connection
+    sshConnections.set(newConnectionId, conn)
+    connectionStatus.set(newConnectionId, { isVerified: true })
+
+    // Register in connection pool for proper reference counting on disconnect
+    let foundInPool = false
+    sshConnectionPool.forEach((value) => {
+      if (value.conn === conn) {
+        value.sessions.add(newConnectionId)
+        foundInPool = true
+      }
+    })
+
+    if (!foundInPool) {
+      // Create a new pool entry for tracking; hasMfaAuth=false prevents getReusableSshConnection from reusing it
+      const poolKey = getConnectionPoolKey(host, port || 22, username)
+      const forkPoolKey = `fork:${poolKey}:${Date.now()}`
+      sshConnectionPool.set(forkPoolKey, {
+        conn,
+        sessions: new Set([sourceConnectionId, newConnectionId]),
+        host,
+        port: port || 22,
+        username,
+        hasMfaAuth: false
+      })
+    }
+
+    logger.info('SSH fork-session successful', {
+      event: 'ssh.fork-session.success',
+      sourceConnectionId,
+      newConnectionId
+    })
+    return { status: 'connected' }
+  })
+
   ipcMain.handle('ssh:disconnect', async (_event, { id }) => {
     logger.info('Received SSH disconnect request', {
       event: 'ssh.disconnect.start',
@@ -1270,6 +1637,16 @@ export const registerSSHHandlers = () => {
     }
 
     // Default SSH handling
+    manualDisconnectSessions.add(id)
+    logger.info('Mark session as manual disconnect', {
+      event: 'ssh.disconnect.manual.mark',
+      connectionId: id
+    })
+    setPendingShellCloseInfo(id, {
+      reason: 'manual',
+      isNetworkDisconnect: false
+    })
+
     const stream = shellStreams.get(id)
     if (stream) {
       stream.end()
@@ -1307,12 +1684,14 @@ export const registerSSHHandlers = () => {
       cleanSftpConnection(id)
       sshConnections.delete(id)
       sftpConnections.delete(id)
+      clearSessionConnectionState(id)
       logger.info('SSH connection disconnected', {
         event: 'ssh.disconnect.success',
         connectionId: id
       })
       return { status: 'success', message: 'Disconnected' }
     }
+    clearSessionConnectionState(id)
     logger.warn('SSH disconnect requested for non-existent connection', {
       event: 'ssh.disconnect.notfound',
       connectionId: id
@@ -1739,7 +2118,30 @@ const getSystemInfo = async (id: string): Promise<CommandGenerationContext> => {
   })
 }
 
-export const initSftpOnConnection = (conn: Client, connectionId: string): Promise<void> => {
+export const pickReconnectConnectionInfo = (connectionInfo: any) => {
+  if (!connectionInfo?.id) return null
+
+  return {
+    id: connectionInfo.id,
+    sshType: connectionInfo.sshType,
+    host: connectionInfo.host,
+    port: connectionInfo.port,
+    username: connectionInfo.username,
+    password: connectionInfo.password,
+    privateKey: connectionInfo.privateKey,
+    passphrase: connectionInfo.passphrase,
+    needProxy: connectionInfo.needProxy,
+    proxyConfig: connectionInfo.proxyConfig,
+    proxyCommand: connectionInfo.proxyCommand,
+    connIdentToken: connectionInfo.connIdentToken,
+    asset_type: connectionInfo.asset_type,
+    assetUuid: connectionInfo.assetUuid,
+    targetIp: connectionInfo.targetIp,
+    terminalType: connectionInfo.terminalType
+  }
+}
+
+export const initSftpOnConnection = (conn: Client, connectionId: string, connectionInfo: any): Promise<void> => {
   return new Promise<void>((resolve) => {
     try {
       conn.sftp((err, sftp) => {
@@ -1777,6 +2179,10 @@ export const initSftpOnConnection = (conn: Client, connectionId: string): Promis
             logger.info(`SFTP check success`, { event: 'ssh.sftp.check', connectionId: connectionId })
             sftpConnections.set(connectionId, { isSuccess: true, sftp })
             connectionStatus.set(connectionId, { sftpAvailable: true })
+            const picked = pickReconnectConnectionInfo(connectionInfo)
+            if (picked) {
+              sftpConnectionInfoMap.set(String(connectionId), picked)
+            }
           }
           resolve()
         })

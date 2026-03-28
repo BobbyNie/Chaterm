@@ -53,17 +53,6 @@
           />
         </p>
         <p
-          v-else-if="i.key === 'kubernetes'"
-          class="term_menu"
-          :class="{ active: activeKey === i.key }"
-          @click="kubernetes"
-        >
-          <img
-            :src="i.icon"
-            alt=""
-          />
-        </p>
-        <p
           v-else
           class="term_menu"
           :class="{ active: activeKey === i.key }"
@@ -220,9 +209,6 @@ const files = (key) => {
   menuClick(key)
 }
 
-const kubernetes = () => {
-  menuClick('kubernetes')
-}
 const api = (window as any).api
 
 const refreshPluginViews = async () => {

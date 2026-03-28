@@ -130,6 +130,8 @@ import {
   type JumpServerStatusData,
   shouldUseBastionStatusChannel
 } from './utils/jumpServerStatusHandler'
+import { shouldSkipAssetLookup } from './utils/wakeupConnection'
+import { registerSshConnection, unregisterSshConnection } from './utils/sshConnectionRegistry'
 import { getLastNonEmptyLine, isTerminalPromptLine } from './utils/terminalPrompt'
 import { stripAnsiBasic, stripAnsiExtended } from './utils/ansiUtils'
 import { isFocusInAiTab } from '@/utils/domUtils'
@@ -152,6 +154,12 @@ const HEAVY_UI_SEPARATOR_RE = /=+/
 
 const logger = createRendererLogger('ssh.connect')
 const { t } = useI18n()
+type ShellCloseInfo = {
+  reason: 'manual' | 'network' | 'unknown'
+  isNetworkDisconnect: boolean
+  errorCode?: string
+  errorMessage?: string
+}
 const selectFlag = ref(false)
 const configStore = userConfigStore()
 const isTransparent = computed(() => !!configStore.getUserConfig.background.image)
@@ -283,6 +291,10 @@ export interface sshConnectData {
   hostname?: string
   host?: string
   comment?: string
+  source?: string
+  wakeupSource?: string
+  skipAssetLookup?: boolean
+  forkFromConnectionId?: string
 }
 
 const handleRightClick = (event) => {
@@ -351,6 +363,17 @@ const setRef = (el, key) => {
   }
 }
 const isConnected = ref(false)
+// Auto reconnect state used when a session is interrupted by network failure.
+const manualDisconnectRequested = ref(false)
+const disconnectedByNetwork = ref(false)
+const waitingForNetworkRestore = ref(false)
+const autoReconnectAttempts = ref(0)
+const autoReconnectInProgress = ref(false)
+const connectInProgress = ref(false)
+const AUTO_RECONNECT_MAX_ATTEMPTS = 3
+const AUTO_RECONNECT_BASE_DELAY_MS = 2000
+let autoReconnectTimer: ReturnType<typeof setTimeout> | null = null
+
 const terminal = ref<Terminal | null>(null)
 const fitAddon = ref<FitAddon | null>(null)
 const connectionId = ref('')
@@ -670,6 +693,8 @@ onMounted(async () => {
   if (config.pinchZoomStatus === 1) {
     window.addEventListener('wheel', handleWheel)
   }
+  window.addEventListener('online', handleBrowserOnline)
+  window.addEventListener('offline', handleBrowserOffline)
   window.addEventListener('keydown', handleGlobalKeyDown)
   window.addEventListener('click', () => {
     if (contextmenu.value && typeof contextmenu.value.hide === 'function') {
@@ -904,6 +929,8 @@ const handlePinchZoomStatusChanged = async (enabled: boolean) => {
 }
 
 onBeforeUnmount(() => {
+  manualDisconnectRequested.value = true
+  resetAutoReconnectState()
   cachedSelectionButton = null
   if (sendTerminalStateTimer) {
     clearTimeout(sendTerminalStateTimer)
@@ -915,6 +942,8 @@ onBeforeUnmount(() => {
   }
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('wheel', handleWheel)
+  window.removeEventListener('online', handleBrowserOnline)
+  window.removeEventListener('offline', handleBrowserOffline)
   inputManager.unregisterInstances(connectionId.value)
   if (resizeObserver) {
     resizeObserver.disconnect()
@@ -942,6 +971,8 @@ onBeforeUnmount(() => {
       }
     }
   }
+
+  unregisterSshConnection(props.currentConnectionId)
 
   if (isConnected.value) {
     disconnectSSH()
@@ -1230,162 +1261,453 @@ const handleResize = debounce(() => {
 
 const emit = defineEmits(['connectSSH', 'disconnectSSH', 'closeTabInTerm', 'createNewTerm'])
 
-const connectSSH = async () => {
-  if (termOndata) {
-    termOndata.dispose()
-    termOndata = null
+// Keep reconnect prompts fully i18n-based.
+const getAutoReconnectMessage = (key: string, params?: Record<string, unknown>) => {
+  return t(`ssh.autoReconnect.${key}`, params || {})
+}
+
+// Mirror reconnect progress to app logger and terminal output.
+const writeAutoReconnectLog = (text: string) => {
+  const tag = getAutoReconnectMessage('tag')
+  logger.info('Auto reconnect trace', {
+    event: 'ssh.auto-reconnect.trace',
+    connectionId: connectionId.value,
+    message: text
+  })
+  cusWrite?.(`\r\n[${tag}] ${text}\r\n`, { isUserCall: true })
+}
+
+// Ensure only one reconnect timer is active at any time.
+const clearAutoReconnectTimer = () => {
+  if (autoReconnectTimer) {
+    clearTimeout(autoReconnectTimer)
+    autoReconnectTimer = null
   }
-  if (termOnBinary) {
-    termOnBinary?.dispose()
-    termOnBinary = null
+}
+
+// Reset reconnect state after success or when reconnect flow is cancelled.
+const resetAutoReconnectState = () => {
+  clearAutoReconnectTimer()
+  autoReconnectInProgress.value = false
+  autoReconnectAttempts.value = 0
+  waitingForNetworkRestore.value = false
+  disconnectedByNetwork.value = false
+}
+
+// Manual reconnect should interrupt pending automatic retry loops.
+const prepareManualReconnectAttempt = () => {
+  clearAutoReconnectTimer()
+  autoReconnectInProgress.value = false
+  autoReconnectAttempts.value = 0
+}
+
+// Central retry scheduler: gate by state, retry with backoff, stop after max attempts.
+const scheduleAutoReconnect = (delayMs = 0) => {
+  if (!disconnectedByNetwork.value || manualDisconnectRequested.value || isConnected.value) {
+    logger.info('Skip auto reconnect scheduling', {
+      event: 'ssh.auto-reconnect.schedule.skip',
+      connectionId: connectionId.value,
+      disconnectedByNetwork: disconnectedByNetwork.value,
+      manualDisconnectRequested: manualDisconnectRequested.value,
+      isConnected: isConnected.value
+    })
+    return
   }
+  clearAutoReconnectTimer()
 
-  if (terminal.value) {
-    const textarea = terminal.value.element?.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement | null
-    if (textarea) {
-      if (textareaCompositionListener) {
-        textarea.removeEventListener('compositionend', textareaCompositionListener)
-        textareaCompositionListener = null
-      }
-      if (textareaPasteListener) {
-        textarea.removeEventListener('paste', textareaPasteListener)
-        textareaPasteListener = null
-      }
+  autoReconnectTimer = setTimeout(async () => {
+    if (!disconnectedByNetwork.value || manualDisconnectRequested.value || isConnected.value) {
+      logger.info('Cancel auto reconnect tick', {
+        event: 'ssh.auto-reconnect.tick.cancel',
+        connectionId: connectionId.value,
+        disconnectedByNetwork: disconnectedByNetwork.value,
+        manualDisconnectRequested: manualDisconnectRequested.value,
+        isConnected: isConnected.value
+      })
+      return
     }
-  }
-
-  try {
-    const assetInfo = await api.connectAssetInfo({ uuid: props.connectData.uuid })
-    const password = ref('')
-    const privateKey = ref('')
-    const passphrase = ref('')
-    if (assetInfo) {
-      password.value = assetInfo.auth_type === 'password' ? assetInfo.password : ''
-      privateKey.value = assetInfo.auth_type === 'keyBased' ? assetInfo.privateKey : ''
-      passphrase.value = assetInfo.auth_type === 'keyBased' ? assetInfo.passphrase : ''
-    } else {
-      password.value = props.connectData.authType === 'password' ? props.connectData.password : ''
-      privateKey.value = props.connectData.authType === 'privateKey' ? props.connectData.privateKey : ''
-      passphrase.value = props.connectData.passphrase || ''
+    if (autoReconnectInProgress.value) {
+      logger.info('Auto reconnect already in progress', {
+        event: 'ssh.auto-reconnect.in_progress',
+        connectionId: connectionId.value
+      })
+      return
     }
 
-    const email = userInfoStore().userInfo.email
-
-    const connOrgType = props.serverInfo.organizationId === 'personal' ? 'local' : 'local-team'
-    const connConnectHost = assetInfo?.asset_ip || props.connectData.host || props.connectData.ip
-    const connUsername = assetInfo?.username || props.connectData.username
-    const connAssetIp = assetInfo?.asset_ip || props.connectData.host
-    const connHostname = assetInfo?.hostname || props.connectData.hostname
-    const connPort = assetInfo?.port || props.connectData.port
-    const connHost = assetInfo?.host || props.connectData.host
-    const connPassword = assetInfo?.password || props.connectData.password
-    const connComment = assetInfo?.comment || props.connectData.comment
-    const connSshType = assetInfo?.sshType || 'ssh'
-    const connAssetType = assetInfo?.asset_type || ''
-
-    const hostnameBase64 = props.serverInfo.organizationId === 'personal' ? Base64Util.encode(connAssetIp) : Base64Util.encode(connHostname)
-
-    const sessionId = uuidv4() // Different for each tab
-    const jumpserverUuid = assetInfo?.organization_uuid || props.connectData.uuid
-
-    connectionId.value = `${connUsername}@${props.connectData.ip}:${connOrgType}:${hostnameBase64}:${sessionId}`
-
-    // Setup status listener for bastion host connections
-    // All plugin bastions reuse the jumpserver:status-update channel
-    if (shouldUseBastionStatusChannel(connSshType) && terminal.value) {
-      jumpServerStatusHandler = createJumpServerStatusHandler(terminal.value, connectionId.value, translateJumpServerStatus)
-      jumpServerStatusHandler.setupStatusListener(api)
+    if (!navigator.onLine) {
+      waitingForNetworkRestore.value = true
+      writeAutoReconnectLog(getAutoReconnectMessage('networkOfflineWaitingRestoration'))
+      return
     }
 
-    const jmsToken = ref(localStorage.getItem('jms-token'))
-
-    const connData: any = {
-      id: connectionId.value, // Session ID (unique for each tab)
-      assetUuid: jumpserverUuid, // JumpServer UUID (for connection pool reuse)
-      host: connConnectHost,
-      port: connPort,
-      username: connUsername,
-      password: connPassword,
-      privateKey: privateKey.value,
-      passphrase: passphrase.value,
-      targetIp: connHost,
-      targetHostname: connHostname,
-      targetAsset: connComment || connHost,
-      comment: connComment,
-      sshType: connSshType,
-      terminalType: config.terminalType,
-      agentForward: config.sshAgentsStatus === 1,
-      isOfficeDevice: isOfficeDevice.value,
-      connIdentToken: jmsToken.value || '',
-      asset_type: connAssetType, // Pass asset_type to main process for switch handling
-      proxyCommand: props.connectData.proxyCommand || ''
-    }
-    connData.needProxy = assetInfo?.need_proxy === 1 || false
-    if (connData.needProxy) {
-      connData.proxyConfig = config.sshProxyConfigs.find((item) => item.name === assetInfo?.proxy_name)
-    }
-
-    const { mark: perfMark } = await import('@/utils/perf')
-    perfMark('chaterm/terminal/willConnect')
-    const result = await api.connect(connData)
-    perfMark('chaterm/terminal/didConnect')
-
-    if (jumpServerStatusHandler) {
-      jumpServerStatusHandler.cleanup()
-      jumpServerStatusHandler = null
-    }
-
-    const isSwitchDevice = connAssetType?.startsWith('person-switch-') ?? false
-    if (isSwitchDevice) {
-      connectionHasSudo.value = false
-      getCmdList([])
-    } else {
-      api
-        .connectReadyData(connectionId.value)
-        .then((connectReadyData) => {
-          connectionHasSudo.value = connectReadyData?.hasSudo
-          getCmdList(connectReadyData?.commandList)
+    if (autoReconnectAttempts.value >= AUTO_RECONNECT_MAX_ATTEMPTS) {
+      writeAutoReconnectLog(
+        getAutoReconnectMessage('stoppedAfterMaxAttempts', {
+          max: AUTO_RECONNECT_MAX_ATTEMPTS
         })
-        .catch((error) => {
-          logger.error('Failed to receive command list', { error: error })
+      )
+      disconnectedByNetwork.value = false
+      autoReconnectInProgress.value = false
+      waitingForNetworkRestore.value = false
+      return
+    }
+
+    autoReconnectInProgress.value = true
+    autoReconnectAttempts.value += 1
+    const currentAttempt = autoReconnectAttempts.value
+    writeAutoReconnectLog(
+      getAutoReconnectMessage('attemptProgress', {
+        current: currentAttempt,
+        max: AUTO_RECONNECT_MAX_ATTEMPTS
+      })
+    )
+
+    const success = await connectSSH({ isAutoReconnect: true })
+    autoReconnectInProgress.value = false
+
+    if (success) {
+      writeAutoReconnectLog(
+        getAutoReconnectMessage('connectedOnAttempt', {
+          current: currentAttempt,
+          max: AUTO_RECONNECT_MAX_ATTEMPTS
+        })
+      )
+      resetAutoReconnectState()
+      return
+    }
+
+    writeAutoReconnectLog(
+      getAutoReconnectMessage('attemptFailed', {
+        current: currentAttempt,
+        max: AUTO_RECONNECT_MAX_ATTEMPTS
+      })
+    )
+
+    if (currentAttempt >= AUTO_RECONNECT_MAX_ATTEMPTS) {
+      writeAutoReconnectLog(
+        getAutoReconnectMessage('stoppedAfterMaxAttempts', {
+          max: AUTO_RECONNECT_MAX_ATTEMPTS
+        })
+      )
+      disconnectedByNetwork.value = false
+      waitingForNetworkRestore.value = false
+      return
+    }
+
+    const nextDelay = AUTO_RECONNECT_BASE_DELAY_MS * currentAttempt
+    writeAutoReconnectLog(
+      getAutoReconnectMessage('retryingInSeconds', {
+        seconds: Math.ceil(nextDelay / 1000)
+      })
+    )
+    scheduleAutoReconnect(nextDelay)
+  }, delayMs)
+}
+
+// Browser offline/online events are used to pause and resume reconnect attempts.
+const handleBrowserOffline = () => {
+  waitingForNetworkRestore.value = true
+  logger.info('Browser network offline event', {
+    event: 'ssh.auto-reconnect.browser.offline',
+    connectionId: connectionId.value
+  })
+}
+
+const handleBrowserOnline = () => {
+  waitingForNetworkRestore.value = false
+  logger.info('Browser network online event', {
+    event: 'ssh.auto-reconnect.browser.online',
+    connectionId: connectionId.value,
+    disconnectedByNetwork: disconnectedByNetwork.value,
+    manualDisconnectRequested: manualDisconnectRequested.value,
+    isConnected: isConnected.value
+  })
+
+  if (disconnectedByNetwork.value && !manualDisconnectRequested.value && !isConnected.value) {
+    writeAutoReconnectLog(getAutoReconnectMessage('networkRestoredStartReconnect'))
+    scheduleAutoReconnect(0)
+  }
+}
+
+const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
+  // Prevent concurrent connect calls (auto reconnect + manual reconnect).
+  if (connectInProgress.value) {
+    logger.info('Skip SSH connect because another connect is in progress', {
+      event: 'ssh.connect.skip.in_progress',
+      connectionId: connectionId.value,
+      isAutoReconnect: _opts?.isAutoReconnect === true
+    })
+    return false
+  }
+
+  connectInProgress.value = true
+  try {
+    manualDisconnectRequested.value = false
+    clearAutoReconnectTimer()
+    let connectSuccess = false
+    logger.info('Start SSH connect', {
+      event: 'ssh.connect.start.renderer',
+      connectionId: connectionId.value,
+      isAutoReconnect: _opts?.isAutoReconnect === true
+    })
+
+    if (terminal.value) {
+      const textarea = terminal.value.element?.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement | null
+      if (textarea) {
+        if (textareaCompositionListener) {
+          textarea.removeEventListener('compositionend', textareaCompositionListener)
+          textareaCompositionListener = null
+        }
+        if (textareaPasteListener) {
+          textarea.removeEventListener('paste', textareaPasteListener)
+          textareaPasteListener = null
+        }
+      }
+    }
+
+    try {
+      const skipAssetLookup = shouldSkipAssetLookup(props.connectData)
+      const assetInfo = skipAssetLookup ? null : await api.connectAssetInfo({ uuid: props.connectData.uuid })
+      const password = ref('')
+      const privateKey = ref('')
+      const passphrase = ref('')
+      if (assetInfo) {
+        password.value = assetInfo.auth_type === 'password' ? assetInfo.password : ''
+        privateKey.value = assetInfo.auth_type === 'keyBased' ? assetInfo.privateKey : ''
+        passphrase.value = assetInfo.auth_type === 'keyBased' ? assetInfo.passphrase : ''
+      } else {
+        password.value = props.connectData.authType === 'password' ? props.connectData.password : ''
+        privateKey.value = props.connectData.authType === 'privateKey' ? props.connectData.privateKey : ''
+        passphrase.value = props.connectData.passphrase || ''
+      }
+
+      const email = userInfoStore().userInfo.email
+      const isAutoReconnect = _opts?.isAutoReconnect === true
+      const shouldFocusAfterConnect = !isAutoReconnect && props.isActive && props.activeTabId === props.currentConnectionId
+
+      const connOrgType = props.serverInfo.organizationId === 'personal' ? 'local' : 'local-team'
+      const connConnectHost = assetInfo?.asset_ip || props.connectData.host || props.connectData.ip
+      const connUsername = assetInfo?.username || props.connectData.username
+      const connAssetIp = assetInfo?.asset_ip || props.connectData.host
+      const connHostname = assetInfo?.hostname || props.connectData.hostname
+      const connPort = assetInfo?.port || props.connectData.port
+      const connHost = assetInfo?.host || props.connectData.host
+      const connPassword = assetInfo?.password || props.connectData.password
+      const connComment = assetInfo?.comment || props.connectData.comment
+      const connSshType = assetInfo?.sshType || 'ssh'
+      const connAssetType = assetInfo?.asset_type || props.connectData.asset_type || ''
+
+      const hostnameBase64 = props.serverInfo.organizationId === 'personal' ? Base64Util.encode(connAssetIp) : Base64Util.encode(connHostname)
+
+      const sessionId = uuidv4() // Different for each tab
+      const jumpserverUuid = assetInfo?.organization_uuid || props.connectData.uuid
+
+      connectionId.value = `${connUsername}@${props.connectData.ip}:${connOrgType}:${hostnameBase64}:${sessionId}`
+
+      // Fork path: reuse an existing authenticated SSH connection
+      if (props.connectData.forkFromConnectionId) {
+        logger.info('Fork SSH session from existing connection', {
+          sourceConnectionId: props.connectData.forkFromConnectionId,
+          newConnectionId: connectionId.value,
+          isAutoReconnect
+        })
+        const forkResult = await api.forkSession({
+          sourceConnectionId: props.connectData.forkFromConnectionId,
+          newConnectionId: connectionId.value,
+          host: connConnectHost,
+          port: connPort,
+          username: connUsername
+        })
+        if (forkResult.status === 'connected') {
+          disconnectedByNetwork.value = false
+          waitingForNetworkRestore.value = false
+          autoReconnectAttempts.value = 0
+          if (!isAutoReconnect) {
+            const welcomeName = email.split('@')[0] || userInfoStore().userInfo.name
+            const welcome = '\x1b[38;2;22;119;255m' + t('ssh.welcomeMessage', { username: welcomeName }) + ' \x1b[m\r\n'
+            terminal.value?.writeln('')
+            terminal.value?.writeln(welcome)
+            terminal.value?.writeln(t('ssh.connectingTo', { ip: props.connectData.ip }))
+          }
+          await startShell()
+          shellOpenedAt = Date.now()
+          setupTerminalInput()
+          // Single deferred resize after guard window to avoid rapid setWindow killing
+          setTimeout(() => {
+            handleResize()
+            terminal.value?.scrollToBottom()
+            if (shouldFocusAfterConnect) {
+              terminal.value?.focus()
+            }
+          }, RESIZE_GUARD_MS + 100)
+          registerSshConnection(props.currentConnectionId, connectionId.value)
+          connectSuccess = true
+          logger.info('SSH connect succeeded (fork)', {
+            event: 'ssh.connect.success.renderer',
+            connectionId: connectionId.value,
+            isAutoReconnect
+          })
+        } else {
+          const resolvedForkMessage = forkResult?.message || 'Fork failed'
+          const errorMsg = formatStatusMessage(t('ssh.connectionFailed', { message: resolvedForkMessage }), 'error')
+          terminal.value?.writeln(errorMsg)
+          logger.info('SSH connect failed (fork)', {
+            event: 'ssh.connect.failed.renderer',
+            connectionId: connectionId.value,
+            isAutoReconnect,
+            status: forkResult?.status,
+            message: resolvedForkMessage
+          })
+        }
+      } else {
+        // Setup status listener for bastion host connections
+        // All plugin bastions reuse the jumpserver:status-update channel
+        if (shouldUseBastionStatusChannel(connSshType) && terminal.value) {
+          jumpServerStatusHandler = createJumpServerStatusHandler(terminal.value, connectionId.value, translateJumpServerStatus)
+          jumpServerStatusHandler.setupStatusListener(api)
+        }
+
+        const jmsToken = ref(localStorage.getItem('jms-token'))
+
+        const connData: any = {
+          id: connectionId.value, // Session ID (unique for each tab)
+          assetUuid: jumpserverUuid, // JumpServer UUID (for connection pool reuse)
+          host: connConnectHost,
+          port: connPort,
+          username: connUsername,
+          password: connPassword,
+          privateKey: privateKey.value,
+          passphrase: passphrase.value,
+          targetIp: connHost,
+          targetHostname: connHostname,
+          targetAsset: connComment || connHost,
+          comment: connComment,
+          sshType: connSshType,
+          terminalType: config.terminalType,
+          agentForward: config.sshAgentsStatus === 1,
+          isOfficeDevice: isOfficeDevice.value,
+          connIdentToken: jmsToken.value || '',
+          asset_type: connAssetType, // Pass asset_type to main process for switch handling
+          proxyCommand: props.connectData.proxyCommand || '',
+          source: props.connectData.source || '',
+          wakeupSource: props.connectData.wakeupSource || props.connectData.source || '',
+          disablePostConnectProbe: skipAssetLookup
+        }
+        connData.needProxy = assetInfo?.need_proxy === 1 || false
+        if (connData.needProxy) {
+          connData.proxyConfig = config.sshProxyConfigs.find((item) => item.name === assetInfo?.proxy_name)
+        }
+
+        const { mark: perfMark } = await import('@/utils/perf')
+        perfMark('chaterm/terminal/willConnect')
+        const result = await api.connect(connData)
+        perfMark('chaterm/terminal/didConnect')
+
+        if (jumpServerStatusHandler) {
+          jumpServerStatusHandler.cleanup()
+          jumpServerStatusHandler = null
+        }
+
+        const isSwitchDevice = connAssetType?.startsWith('person-switch-') ?? false
+        if (isSwitchDevice) {
           connectionHasSudo.value = false
           getCmdList([])
-        })
-    }
+        } else {
+          api
+            .connectReadyData(connectionId.value)
+            .then((connectReadyData) => {
+              connectionHasSudo.value = connectReadyData?.hasSudo
+              getCmdList(connectReadyData?.commandList)
+            })
+            .catch((error) => {
+              logger.error('Failed to receive command list', { error: error })
+              connectionHasSudo.value = false
+              getCmdList([])
+            })
+        }
 
-    if (result.status === 'connected') {
-      perfMark('chaterm/terminal/connected')
-      const welcomeName = email.split('@')[0] || userInfoStore().userInfo.name
-      const welcome = '\x1b[38;2;22;119;255m' + t('ssh.welcomeMessage', { username: welcomeName }) + ' \x1b[m\r\n'
-      terminal.value?.writeln('') // Add empty line separator
-      terminal.value?.writeln(welcome)
-      terminal.value?.writeln(t('ssh.connectingTo', { ip: props.connectData.ip }))
-      await startShell()
-      setupTerminalInput()
-      handleResize()
-      setTimeout(() => {
-        handleResize()
-        // Ensure scroll to bottom after successful connection
-        terminal.value?.scrollToBottom()
-        terminal.value?.focus()
-      }, 200)
-      api.setShellPid(connectionId.value)
-    } else {
-      const resolvedMessage = result?.messageKey ? t(result.messageKey, result.messageParams || {}) : (result?.message as string)
-      const errorMsg = formatStatusMessage(t('ssh.connectionFailed', { message: resolvedMessage }), 'error')
+        if (result.status === 'connected') {
+          perfMark('chaterm/terminal/connected')
+          disconnectedByNetwork.value = false
+          waitingForNetworkRestore.value = false
+          autoReconnectAttempts.value = 0
+          if (!isAutoReconnect) {
+            const welcomeName = email.split('@')[0] || userInfoStore().userInfo.name
+            const welcome = '\x1b[38;2;22;119;255m' + t('ssh.welcomeMessage', { username: welcomeName }) + ' \x1b[m\r\n'
+            terminal.value?.writeln('') // Add empty line separator
+            terminal.value?.writeln(welcome)
+            terminal.value?.writeln(t('ssh.connectingTo', { ip: props.connectData.ip }))
+          }
+          await startShell()
+          shellOpenedAt = Date.now()
+          setupTerminalInput()
+          // Single deferred resize after guard window to avoid rapid setWindow killing the shell
+          setTimeout(() => {
+            handleResize()
+            terminal.value?.scrollToBottom()
+            if (shouldFocusAfterConnect) {
+              terminal.value?.focus()
+              terminal.value?.focus()
+            }
+          }, RESIZE_GUARD_MS + 100)
+          if (shouldSkipAssetLookup(props.connectData)) {
+            logger.info('Skip shell PID probe for xshell wakeup session', {
+              connectionId: connectionId.value,
+              source: props.connectData?.wakeupSource || props.connectData?.source || 'unknown'
+            })
+          } else {
+            api.setShellPid(connectionId.value)
+          }
+          registerSshConnection(props.currentConnectionId, connectionId.value)
+          connectSuccess = true
+          logger.info('SSH connect succeeded', {
+            event: 'ssh.connect.success.renderer',
+            connectionId: connectionId.value,
+            isAutoReconnect
+          })
+        } else {
+          const resolvedMessage = result?.messageKey ? t(result.messageKey, result.messageParams || {}) : (result?.message as string)
+          const errorMsg = formatStatusMessage(t('ssh.connectionFailed', { message: resolvedMessage }), 'error')
+          terminal.value?.writeln(errorMsg)
+          logger.info('SSH connect failed (status)', {
+            event: 'ssh.connect.failed.renderer',
+            connectionId: connectionId.value,
+            isAutoReconnect,
+            status: result.status,
+            message: resolvedMessage
+          })
+        }
+      }
+    } catch (error: any) {
+      if (jumpServerStatusHandler) {
+        jumpServerStatusHandler.cleanup()
+        jumpServerStatusHandler = null
+      }
+
+      const errorMsg = formatStatusMessage(t('ssh.connectionError', { message: error.message || t('ssh.unknownError') }), 'error')
       terminal.value?.writeln(errorMsg)
+      logger.info('SSH connect failed (exception)', {
+        event: 'ssh.connect.error.renderer',
+        connectionId: connectionId.value,
+        isAutoReconnect: _opts?.isAutoReconnect === true,
+        error: error?.message || String(error)
+      })
     }
-  } catch (error: any) {
-    if (jumpServerStatusHandler) {
-      jumpServerStatusHandler.cleanup()
-      jumpServerStatusHandler = null
+    try {
+      connectionSftpAvailable.value = connectSuccess ? await api.checkSftpConnAvailable(connectionId.value) : false
+    } catch (error) {
+      connectionSftpAvailable.value = false
+      logger.warn('Check SFTP availability failed after SSH connect', {
+        event: 'ssh.connect.sftp.check_failed',
+        connectionId: connectionId.value,
+        error: error instanceof Error ? error.message : String(error)
+      })
     }
-
-    const errorMsg = formatStatusMessage(t('ssh.connectionError', { message: error.message || t('ssh.unknownError') }), 'error')
-    terminal.value?.writeln(errorMsg)
+    emit('connectSSH', { isConnected: isConnected })
+    return isConnected.value
+  } finally {
+    connectInProgress.value = false
   }
-  connectionSftpAvailable.value = await api.checkSftpConnAvailable(connectionId.value)
-  emit('connectSSH', { isConnected: isConnected })
 }
 
 const {
@@ -1407,7 +1729,12 @@ const {
 
 const startShell = async () => {
   try {
-    const result = await api.shell({ id: connectionId.value, terminalType: config.terminalType })
+    const result = await api.shell({
+      id: connectionId.value,
+      terminalType: config.terminalType,
+      cols: terminal.value?.cols || 80,
+      rows: terminal.value?.rows || 24
+    })
     initZmodem()
     if (result.status === 'success') {
       isConnected.value = true
@@ -1418,9 +1745,14 @@ const startShell = async () => {
       const removeErrorListener = api.onShellError(connectionId.value, (data) => {
         cusWrite?.(data)
       })
-      const removeCloseListener = api.onShellClose(connectionId.value, () => {
+      const removeCloseListener = api.onShellClose(connectionId.value, (closeInfo?: ShellCloseInfo) => {
         isConnected.value = false
-        cusWrite?.('\r\n' + t('ssh.connectionClosed') + '\r\n\r\n')
+        logger.info('Shell close received', {
+          event: 'ssh.shell.close.renderer',
+          connectionId: connectionId.value,
+          closeInfo
+        })
+        cusWrite?.('\r\n' + t('ssh.connectionClosed') + '\r\n')
         cusWrite?.(
           t('ssh.disconnectedFromHost', {
             host: props.serverInfo.title,
@@ -1428,6 +1760,44 @@ const startShell = async () => {
           }) + '\r\n'
         )
         cusWrite?.('\r\n' + t('ssh.pressEnterToReconnect') + '\r\n', { isUserCall: true })
+
+        // Manual disconnect should not trigger automatic reconnect.
+        if (manualDisconnectRequested.value) {
+          disconnectedByNetwork.value = false
+          waitingForNetworkRestore.value = false
+          return
+        }
+
+        const isNetworkDisconnect = closeInfo?.isNetworkDisconnect === true || closeInfo?.reason === 'network' || (!closeInfo && !navigator.onLine)
+        logger.info('Shell close classification', {
+          event: 'ssh.shell.close.classify.renderer',
+          connectionId: connectionId.value,
+          isNetworkDisconnect,
+          closeInfo,
+          navigatorOnLine: navigator.onLine
+        })
+        if (!isNetworkDisconnect) {
+          disconnectedByNetwork.value = false
+          waitingForNetworkRestore.value = false
+          return
+        }
+
+        // Start reconnect flow only for network-related disconnects.
+        disconnectedByNetwork.value = true
+        waitingForNetworkRestore.value = !navigator.onLine
+        autoReconnectAttempts.value = 0
+        const reasonText = closeInfo?.errorMessage || closeInfo?.errorCode || getAutoReconnectMessage('networkIssue')
+        writeAutoReconnectLog(
+          getAutoReconnectMessage('detectedNetworkDisconnect', {
+            reason: reasonText
+          })
+        )
+
+        if (navigator.onLine) {
+          scheduleAutoReconnect(0)
+        } else {
+          writeAutoReconnectLog(getAutoReconnectMessage('networkOfflineWaitingReconnect'))
+        }
       })
 
       cleanupListeners.value.push(removeDataListener, removeErrorListener, removeCloseListener)
@@ -1451,13 +1821,30 @@ const startShell = async () => {
   emit('connectSSH', { isConnected: isConnected })
 }
 
+// Guard: suppress rapid setWindow calls right after shell opens.
+// Multiple setWindow calls within ~200ms can cause the server to close the shell.
+let shellOpenedAt = 0
+const RESIZE_GUARD_MS = 500
+let pendingResizeTimer: ReturnType<typeof setTimeout> | null = null
+
 const resizeSSH = async (cols, rows) => {
+  const elapsed = Date.now() - shellOpenedAt
+  if (shellOpenedAt > 0 && elapsed < RESIZE_GUARD_MS) {
+    // Inside guard window: schedule a single deferred resize at end of guard period
+    if (pendingResizeTimer) clearTimeout(pendingResizeTimer)
+    pendingResizeTimer = setTimeout(
+      () => {
+        pendingResizeTimer = null
+        resizeSSH(cols, rows)
+      },
+      RESIZE_GUARD_MS - elapsed + 50
+    )
+    return
+  }
   try {
     const result = await api.resizeShell(connectionId.value, cols, rows)
     if (result.status === 'error') {
       logger.error('Resize failed', { message: result.message })
-    } else {
-      // console.log('terminal resized:', result.message)
     }
   } catch (error) {
     logger.error('Failed to resize terminal', { error: error })
@@ -1991,6 +2378,7 @@ const setupTerminalInput = () => {
       }
     } else if (data == '\r') {
       if (!isConnected.value) {
+        prepareManualReconnectAttempt()
         cusWrite?.('\r\n' + t('ssh.reconnecting') + '\r\n', { isUserCall: true })
         connectSSH()
         return
@@ -4029,6 +4417,15 @@ const selectSuggestion = (suggestion: CommandSuggestion) => {
 // Load OS info once for AI suggestion context
 const loadOsInfoOnce = async () => {
   if (cachedOsInfoLoaded.value || !connectionId.value || !isConnected.value || isLocalConnect.value) return
+  if (shouldSkipAssetLookup(props.connectData)) {
+    cachedOsInfo.value = undefined
+    cachedOsInfoLoaded.value = true
+    logger.info('Skip OS info probe for xshell wakeup session', {
+      connectionId: connectionId.value,
+      source: props.connectData?.wakeupSource || props.connectData?.source || 'unknown'
+    })
+    return
+  }
   try {
     const res = await window.api.getSystemInfo(connectionId.value)
     logger.debug('Fetched system info for AI suggestion context', { connectionId: connectionId.value, res })
@@ -4270,6 +4667,12 @@ const handleKeyInput = (e) => {
 }
 
 const disconnectSSH = async () => {
+  manualDisconnectRequested.value = true
+  resetAutoReconnectState()
+  logger.info('Manual disconnect requested', {
+    event: 'ssh.disconnect.manual.renderer',
+    connectionId: connectionId.value
+  })
   try {
     const result = await api.disconnect({ id: connectionId.value })
     if (result.status === 'success') {

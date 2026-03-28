@@ -671,6 +671,12 @@ const api = {
   getProtocolPrefix: (): Promise<string> => {
     return ipcRenderer.invoke('get-protocol-prefix')
   },
+  onXshellWakeup: (callback: (payload: any) => void) => {
+    const listener = (_event, payload) => callback(payload)
+    ipcRenderer.on('external-xshell-wakeup', listener)
+    return () => ipcRenderer.removeListener('external-xshell-wakeup', listener)
+  },
+  consumePendingXshellWakeups: () => ipcRenderer.invoke('xshell-wakeup:consume-pending'),
 
   // keyboard-interactive authentication
   onKeyboardInteractiveTimeout: (callback) => {
@@ -771,6 +777,7 @@ const api = {
   importSkillZip: (zipPath: string, overwrite?: boolean) => ipcRenderer.invoke('skills:import-zip', zipPath, overwrite),
   readSkillContent: (skillName: string) => ipcRenderer.invoke('skills:read-content', skillName),
   updateSkill: (skillName: string, metadata: any, content: string) => ipcRenderer.invoke('skills:update', skillName, metadata, content),
+  exportSkillZip: (skillName: string) => ipcRenderer.invoke('skills:export-zip', skillName),
   onSkillsUpdate: (callback: (skills: any[]) => void) => {
     const listener = (_event, data) => callback(data.skills)
     ipcRenderer.on('skillsUpdate', listener)
@@ -783,6 +790,7 @@ const api = {
 
   // SSH API
   connect: (connectionInfo) => ipcRenderer.invoke('ssh:connect', connectionInfo),
+  forkSession: (params) => ipcRenderer.invoke('ssh:fork-session', params),
   connectReadyData: (id) => {
     return new Promise((resolve) => {
       const channel = `ssh:connect:data:${id}`
@@ -835,7 +843,7 @@ const api = {
     return () => ipcRenderer.removeListener(`ssh:shell:stderr:${id}`, listener)
   },
   onShellClose: (id, callback) => {
-    const listener = () => callback()
+    const listener = (_event, data) => callback(data)
     ipcRenderer.on(`ssh:shell:close:${id}`, listener)
     return () => ipcRenderer.removeListener(`ssh:shell:close:${id}`, listener)
   },

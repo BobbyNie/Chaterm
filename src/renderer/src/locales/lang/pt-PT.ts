@@ -61,6 +61,7 @@ export default {
     splitRightInner: 'Dividir à Direita (Interior)',
     splitDownInner: 'Dividir para Baixo (Interior)',
     clone: 'Clonar',
+    forkSsh: 'Bifurcar canal SSH',
     clearTerm: 'Limpar Ecrã',
     shrotenName: 'Encurtar o Nome do Anfitrião',
     fontsize: 'Tamanho da Fonte',
@@ -1247,6 +1248,19 @@ export default {
     welcomeMessage: '{username}, Bem-vindo ao Chaterm',
     reconnecting: 'Reconectando...',
     terminalConnectionError: 'Erro de conexão. Por favor, verifique se o servidor terminal está em execução.',
+    autoReconnect: {
+      tag: 'ReconexãoAuto',
+      networkIssue: 'problema de rede',
+      networkOfflineWaitingRestoration: 'A rede está offline. A aguardar o restabelecimento da ligação...',
+      stoppedAfterMaxAttempts: 'Parado após {max} tentativas falhadas. Prima Enter para tentar novamente manualmente.',
+      attemptProgress: 'Tentativa {current}/{max}...',
+      connectedOnAttempt: 'Ligação estabelecida com sucesso na tentativa {current}/{max}.',
+      attemptFailed: 'A tentativa {current}/{max} falhou.',
+      retryingInSeconds: 'Nova tentativa em {seconds}s...',
+      networkRestoredStartReconnect: 'Rede restabelecida. A iniciar reconexão...',
+      detectedNetworkDisconnect: 'Detetada desconexão de rede ({reason}).',
+      networkOfflineWaitingReconnect: 'A rede está offline. A aguardar reconexão...'
+    },
     jumpserver: {
       connectingToBastionHost: 'Conectando ao host bastion remoto...',
       connectedToBastionHost: 'Conectado ao host bastion com sucesso, por favor, aguarde...',
@@ -1439,7 +1453,10 @@ export default {
     editSkill: 'Editar competência',
     readContentError: 'Falha ao ler o conteúdo da competência',
     updateSuccess: 'Competência atualizada com sucesso',
-    updateError: 'Falha ao atualizar a competência'
+    updateError: 'Falha ao atualizar a competência',
+    exportSkill: 'Exportar competência',
+    exportSuccess: 'Competência "{name}" exportada com sucesso',
+    exportError: 'Falha ao exportar competência'
   },
   knowledgeCenter: {
     title: 'Base de Conhecimento',

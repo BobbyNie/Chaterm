@@ -88,6 +88,7 @@ import {
 
 import { getGlobalState, getUserConfig } from '@core/storage/state'
 import { connectAssetInfo } from '../../../storage/database'
+import { findWakeupConnectionInfoByHost } from '../../../ssh/agentHandle'
 import { getMessages, formatMessage, Messages } from './messages'
 import { decodeHtmlEntities } from '@utils/decodeHtmlEntities'
 import { McpHub } from '@services/mcp/McpHub'
@@ -947,6 +948,11 @@ export class Task {
         })
 
         process.on('error', (error) => {
+          logger.error('executeCommandInRemoteServer error', {
+            event: 'agent.task.exec_remote.error',
+            ip,
+            error: error.message
+          })
           reject(new Error(`Command execution failed: ${error.message}`))
           clearTimeout(timeout)
           if (!isCompleted) {
@@ -1027,11 +1033,35 @@ export class Task {
       if (!connectionInfo) {
         connectionInfo = ExternalAssetCache.get(terminalUuid)
       }
+      // Wakeup fallback: wakeup-created tabs have temporary UUIDs (xshell-xxx)
+      // that don't exist in the asset database or ExternalAssetCache.
+      // The underlying SSH connection is already in sshConnectionPool (saved by
+      // sshHandle.ts when wakeupSource is detected on conn.ready).
+      // We build a minimal ConnectionInfo from the pool entry so remoteSshConnect()
+      // can match it via getReusableSshConnection(host, port, username).
+      // See sshHandle.ts and agentHandle.ts for the full wakeup technical route.
+      if (!connectionInfo && targetHost.host) {
+        const wakeupInfo = findWakeupConnectionInfoByHost(targetHost.host)
+        if (wakeupInfo) {
+          connectionInfo = {
+            host: wakeupInfo.host,
+            port: wakeupInfo.port,
+            username: wakeupInfo.username,
+            password: 'WAKEUP_REUSE',
+            needProxy: false
+          } as any
+          logger.info('Using wakeup connection info from MFA pool', {
+            event: 'agent.task.wakeup.fallback',
+            host: wakeupInfo.host,
+            username: wakeupInfo.username
+          })
+        }
+      }
       this.remoteTerminalManager.setConnectionInfo(connectionInfo)
 
       const hostLabel = connectionInfo?.host || targetHost.host || ip || 'unknown'
       // Create a unique connection identifier
-      const currentConnectionId = `${connectionInfo.host}:${connectionInfo.port}:${connectionInfo.username}`
+      const currentConnectionId = `${connectionInfo?.host || targetHost.host}:${connectionInfo?.port || 22}:${connectionInfo?.username || ''}`
       const isNewConnection = !this.connectedHosts.has(currentConnectionId)
 
       // Check if this is an agent mode + local connection scenario that will fail

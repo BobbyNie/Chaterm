@@ -61,6 +61,7 @@ export default {
     splitRightInner: 'Split Right (Inner)',
     splitDownInner: 'Split Down (Inner)',
     clone: 'Clone',
+    forkSsh: 'Fork SSH Channel',
     clearTerm: 'Clear Screen',
     shrotenName: 'Shorten The Host Name',
     fontsize: 'Fontsize',
@@ -1242,6 +1243,19 @@ export default {
     connectingTo: 'Connecting to {ip}',
     welcomeMessage: '{username}, Welcome to use Chaterm',
     reconnecting: 'Reconnecting...',
+    autoReconnect: {
+      tag: 'AutoReconnect',
+      networkIssue: 'network issue',
+      networkOfflineWaitingRestoration: 'Network is offline. Waiting for connection restoration...',
+      stoppedAfterMaxAttempts: 'Stopped after {max} failed attempts. Press Enter to retry manually.',
+      attemptProgress: 'Attempt {current}/{max}...',
+      connectedOnAttempt: 'Connected successfully on attempt {current}/{max}.',
+      attemptFailed: 'Attempt {current}/{max} failed.',
+      retryingInSeconds: 'Retrying in {seconds}s...',
+      networkRestoredStartReconnect: 'Network restored. Starting reconnect...',
+      detectedNetworkDisconnect: 'Detected network disconnect ({reason}).',
+      networkOfflineWaitingReconnect: 'Network is offline. Waiting for reconnection...'
+    },
     terminalConnectionError: 'Connection error. Please check if the terminal server is running.',
     jumpserver: {
       connectingToBastionHost: 'Connecting to remote bastion host...',
@@ -1435,7 +1449,10 @@ export default {
     editSkill: 'Edit Skill',
     readContentError: 'Failed to read skill content',
     updateSuccess: 'Skill updated successfully',
-    updateError: 'Failed to update skill'
+    updateError: 'Failed to update skill',
+    exportSkill: 'Export Skill',
+    exportSuccess: 'Skill "{name}" exported successfully',
+    exportError: 'Failed to export skill'
   },
   knowledgeCenter: {
     title: 'Knowledge Base',
