@@ -1,3 +1,5 @@
+import { KB_SEARCH_ENABLED_LABELS } from '@shared/Languages'
+
 export default {
   common: {
     runInAllTabs: '所有標籤執行',
@@ -205,6 +207,7 @@ export default {
     aliasStatus: '全局Alias',
     highlightStatus: '命令語法高亮',
     pinchZoomStatus: '觸摸板縮放字體',
+    showCloseButton: 'Tab欄顯示關閉按鈕',
     fontSize: '字體大小(px)',
     fontFamily: '字體',
     cursorStyle: '光標樣式',
@@ -369,6 +372,8 @@ export default {
     autoApprovalDescribe: '允許在不要求確認的情況下運行工具',
     autoExecuteReadOnlyCommands: '查詢類命令自動執行',
     autoExecuteReadOnlyCommandsDescribe: '所有會話中的查詢類命令（如 ls、cat、grep 等）將自動執行，無需人工確認',
+    kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['zh-TW'],
+    kbSearchEnabledDescribe: '新對話開始時自動搜索相關知識庫內容，並允許 AI 在對話中搜索知識庫',
     features: '特徵',
     enableCheckpoints: '開啟檢查點',
     enableCheckpointsDescribe: '允許在整個任務中保存工作區的檢查點',

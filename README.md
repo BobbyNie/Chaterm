@@ -28,7 +28,7 @@
   <img src="https://img.shields.io/codecov/c/github/chaterm/Chaterm?style=flat&logo=codecov" alt="Coverage">
   <img src="https://img.shields.io/badge/AI-Native-blue?style=flat" alt="AI Native">
   <a href="https://x.com/chaterm_ai"><img src="https://img.shields.io/twitter/follow/chaterm_ai?style=flat&logo=x&logoColor=white&label=Follow" alt="Follow on X"></a>
-  <a href="https://discord.gg/45SsUVuh"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://discord.gg/AgsYzwRp62"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 <p align="center">
@@ -52,6 +52,9 @@
   - [Development](#development)
   - [Build](#build)
 - [Chaterm Documentation](https://chaterm.ai/docs/)
+  - [Achieving Secure and Intelligent Operations for AWS Private Subnets Using Chaterm](https://aws.amazon.com/cn/blogs/china/bastion-using-aws-eice-ec2-instance-connect-endpoint-chaterm-implement-subnet-security-intelligent-en/)
+  - [How Chaterm’s Security Architecture Ensures Data Security and Reliability](https://aws.amazon.com/cn/blogs/china/chaterm-aws-kms-envelope-encryption-for-zero-trust-security-en/)
+  - [Enhancing DevOps Intelligence with Chaterm Skills and Qwen Large Models](https://chaterm.ai/blog/posts/agent-skills)
 - [Contributors](#contributors)
 
 # Introduction

@@ -1,3 +1,5 @@
+import { KB_SEARCH_ENABLED_LABELS } from '@shared/Languages'
+
 export default {
   common: {
     runInAllTabs: 'All in tabs',
@@ -205,6 +207,7 @@ export default {
     aliasStatus: 'Global alias',
     highlightStatus: 'Command Syntax Highlighting',
     pinchZoomStatus: 'Pinch to zoom font',
+    showCloseButton: 'Show tab close button',
     fontSize: 'Font size',
     fontFamily: 'Font family',
     cursorStyle: 'Cursor type',
@@ -372,6 +375,9 @@ export default {
     autoApprovalDescribe: 'Allow Agent to run tools without asking for confirmation',
     autoExecuteReadOnlyCommands: 'Auto-execute read-only commands',
     autoExecuteReadOnlyCommandsDescribe: 'Read-only commands (e.g. ls, cat, grep) in all sessions will be auto-executed without confirmation',
+    kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['en-US'],
+    kbSearchEnabledDescribe:
+      'Automatically search relevant knowledge base content when starting a new conversation, and allow AI to search the knowledge base during conversations',
     features: 'Features',
     enableCheckpoints: 'Enable Checkpoints',
     enableCheckpointsDescribe: 'Enables extension to save checkpoints of workspace throughout the task',
@@ -1280,6 +1286,7 @@ export default {
       authenticating: 'Authenticating...',
       connectedToTarget: 'Connected to target server',
       mfaRequired: 'Qizhi bastion host 2nd authentication',
+      selectingAssetCategory: 'Selecting asset category...',
       mfaPrompt: 'Please enter 2nd Password',
       mfaFailed: '2nd authentication failed',
       mfaTimeout: 'Authentication timeout, please retry',

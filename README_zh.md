@@ -28,7 +28,7 @@
   <img src="https://img.shields.io/codecov/c/github/chaterm/Chaterm?style=flat&logo=codecov" alt="Coverage">
   <img src="https://img.shields.io/badge/AI-Native-blue?style=flat" alt="AI Native">
   <a href="https://x.com/chaterm_ai"><img src="https://img.shields.io/twitter/follow/chaterm_ai?style=flat&logo=x&logoColor=white&label=Follow" alt="Follow on X"></a>
-  <a href="https://discord.gg/45SsUVuh"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
+  <a href="https://discord.gg/AgsYzwRp62"><img src="https://img.shields.io/badge/discord-join-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
 
 <p align="center">
@@ -52,6 +52,9 @@
   - [Development](#development)
   - [Build](#build)
 - [Chaterm 参考文档](https://chaterm.cn/docs/)
+  - [Achieving Secure and Intelligent Operations for AWS Private Subnets Using Chaterm](https://aws.amazon.com/cn/blogs/china/bastion-using-aws-eice-ec2-instance-connect-endpoint-chaterm-implement-subnet-security-intelligent-en/)
+  - [How Chaterm’s Security Architecture Ensures Data Security and Reliability](https://aws.amazon.com/cn/blogs/china/chaterm-aws-kms-envelope-encryption-for-zero-trust-security-en/)
+  - [Enhancing DevOps Intelligence with Chaterm Skills and Qwen Models](https://chaterm.ai/blog/posts/agent-skills)
 - [Contributors](#contributors)
 
 # 产品介绍
@@ -108,7 +111,7 @@ Chaterm 不仅仅是一个更智能的终端，它是一个基础设施代理。
 - 🔌 **插件系统**
 
   通过插件扩展，实现对公有云服务器与 Kubernetes 的统一认证、动态授权与安全加密连接。
-  
+
   提供更高效的资源访问体验，助力基础设施的集中化管理。
 
 ![Preview image](resources/features.webp)

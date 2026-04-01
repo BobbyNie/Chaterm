@@ -2,12 +2,34 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
+      "version": "2026.04.01",
+      "date": "2026-04-01",
+      "highlights": {
+        "zh-CN": [
+          "Sync upstream v0.10.0: WebGL GPU accelerated terminal rendering for improved performance",
+          "Sync upstream: Fix SSH terminal word-jump keys (Option/Ctrl+Arrow)",
+          "Sync upstream: Enhanced log sanitization for better security",
+          "Sync upstream: Knowledge base search feature (requires embedding model config)",
+          "Sync upstream: Fix connection testing for GPT5 and newer models",
+          "Sync upstream: Configurable close button on terminal tabs"
+        ],
+        "en-US": [
+          "Synced upstream v0.10.0: WebGL GPU-accelerated terminal rendering for improved performance",
+          "Synced upstream: Fix SSH terminal word-jump keys (Option/Ctrl+Arrow)",
+          "Synced upstream: Enhanced log sanitization for better security",
+          "Synced upstream: Knowledge base search feature (requires embedding model config)",
+          "Synced upstream: Fix connection testing for GPT5 and newer models",
+          "Synced upstream: Configurable close button on terminal tabs"
+        ]
+      }
+    },
+    {
       "version": "2026.03.17",
       "date": "2026-03-17",
       "highlights": {
         "zh-CN": [
-          "修复：Windows 版本启动时 ffmpeg.dll 完整性检查错误",
-          "更新 Electron 41.0.2 的运行时哈希值验证"
+          "Fix: Windows startup ffmpeg.dll integrity check error",
+          "Updated runtime hash verification for Electron 41.0.2"
         ],
         "en-US": [
           "Fix: Windows startup ffmpeg.dll integrity check error",
@@ -16,17 +38,43 @@
       }
     },
     {
+      "version": "0.10.0",
+      "date": "2026-03-31",
+      "highlights": {
+        "zh-CN": [
+          "Kubernetes：新增 Kubernetes 插件，并适配 AI 对话的 Command/Agent 模式",
+          "SSH：新增断线后的自动重连；实现唤醒连接处理与命令执行",
+          "AI：新增 GLM 兼容消息格式转换；修复 AI 设置中“Enable Thinking”按钮显示/可用性问题",
+          "Skill：支持将 Skill 以 ZIP 形式导出进行分享",
+          "终端与命令执行：平台改用登录 Shell 获取用户配置；优化 autoExecuteCode 自动切换终端的执行逻辑",
+          "本地连接：支持本地连接的（Ctrl/Command + K）快捷键弹出的对话框进行AI对话",
+          "文件管理：修复断线后文件管理导致无法重新连接的问题",
+          "任务管理：更新任务标题时同步写入 updated_at 时间戳"
+        ],
+        "en-US": [
+          "Kubernetes: add Kubernetes plugin; adapt the AI dialog Command/Agent modes and improve K8s terminal background theme handling",
+          "SSH: add automatic reconnection after disconnects; implement wakeup connection handling with command execution",
+          "AI: add GLM-compatible message format conversion; fix the \"Enable Thinking\" button in AI settings",
+          "Skill: support exporting Skill as a ZIP for sharing",
+          "Terminal & command execution: use login shells on Unix-like platforms to load user configuration; improve autoExecuteCode switching logic for terminal execution",
+          "Local connection: support AI dialog in the dialog opened by the shortcut key (Ctrl/Command + K) for local connection",
+          "File management: fix the inability to reconnect after file management when disconnected",
+          "Task management: update the updated_at timestamp when the task title changes"
+        ]
+      }
+    },
+    {
       "version": "2026.03.16",
       "date": "2026-03-16",
       "highlights": {
         "zh-CN": [
-          "内网版本：无登录要求，直接使用所有功能",
-          "同步上游：Electron 升级到 41.0.2，提升稳定性",
-          "同步上游：新增阿拉伯语本地化支持",
-          "同步上游：Agent 新增 read_file 工具，提升复杂任务稳定性",
-          "同步上游：AI 对话支持仅输入 / 触发命令弹窗",
-          "同步上游：文件管理重构，优化文件夹上传/下载/传输流程",
-          "同步上游：修复浅色主题切换背景时的终端显示异常"
+          "Intranet Edition: No login required, use all features directly",
+          "Synced Upstream: Electron upgraded to 41.0.2 for better stability",
+          "Synced Upstream: Added Arabic localization support",
+          "Synced Upstream: Agent adds read_file tool for complex task stability",
+          "Synced Upstream: AI conversation supports / trigger for command popup",
+          "Synced Upstream: File management refactored, optimized folder upload/download/transfer",
+          "Synced Upstream: Fixed terminal display issues with light theme background switching"
         ],
         "en-US": [
           "Intranet Edition: No login required, use all features directly",
@@ -44,11 +92,11 @@
       "date": "2026-03-09",
       "highlights": {
         "zh-CN": [
-          "内网版本首次发布",
-          "移除云服务依赖：无需登录，自动以访客身份使用",
-          "移除用户菜单和计费功能",
-          "添加 GitHub Actions 自动构建",
-          "支持 Windows 和 macOS 平台"
+          "Initial release of Intranet Edition",
+          "Removed cloud dependencies: No login required, auto-use as guest",
+          "Removed user menu and billing features",
+          "Added GitHub Actions for automated builds",
+          "Supports Windows and macOS platforms"
         ],
         "en-US": [
           "Initial release of Intranet Edition",
@@ -56,6 +104,24 @@
           "Removed user menu and billing features",
           "Added GitHub Actions for automated builds",
           "Supports Windows and macOS platforms"
+        ]
+      }
+    },
+    {
+      "version": "0.9.4",
+      "date": "2026-03-24",
+      "highlights": {
+        "zh-CN": [
+          "技能（Skill）：对话中会显示当前用到的Skill；支持把一段对话一键整理成Skill；启用Skill时会有提示；管理、编辑Skill内容更简单",
+          "知识库与同步：笔记可同步到云端并查看剩余空间；打开应用后会自动拉取最新内容；用户配置支持跨设备同步",
+          "资产管理：优化添加主机的布局样式",
+          "界面与体验：首次打开默认使用深色主题；填写主机地址与端口时排版更整齐"
+        ],
+        "en-US": [
+          "Skill: see which Skill apply to the current chat; turn a conversation into a Skill with one click; get a notice when a Skill is turned on; simpler management and editing of Skill content",
+          "Knowledge base and sync: sync notes to the cloud and see how much space is left; the app pulls the latest content when you open it; user configuration supports cross-device synchronization",
+          "Asset management: optimize the layout style of adding hosts",
+          "Look and feel: dark theme by default; tidier layout for host and port fields"
         ]
       }
     },
@@ -345,16 +411,28 @@
       "version": "0.6.2",
       "date": "2025-11-13",
       "highlights": {
-        "zh-CN": ["加强AI模型的选择和测试中的调试过程", "在选项卡菜单中增加了内部分屏显示的选项"],
-        "en-US": ["Enhance AI model selection and debugging process in tests", "Added the option for inner split-screen display within the tab menu"]
+        "zh-CN": [
+          "加强AI模型的选择和测试中的调试过程",
+          "在选项卡菜单中增加了内部分屏显示的选项"
+        ],
+        "en-US": [
+          "Enhance AI model selection and debugging process in tests",
+          "Added the option for inner split-screen display within the tab menu"
+        ]
       }
     },
     {
       "version": "0.6.1",
       "date": "2025-06-08",
       "highlights": {
-        "zh-CN": ["支持jms令牌", "添加了SSH连接身份"],
-        "en-US": ["Support jms token", "Added SSH connection identity"]
+        "zh-CN": [
+          "支持jms令牌",
+          "添加了SSH连接身份"
+        ],
+        "en-US": [
+          "Support jms token",
+          "Added SSH connection identity"
+        ]
       }
     }
   ]

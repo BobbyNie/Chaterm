@@ -1,3 +1,5 @@
+import { KB_SEARCH_ENABLED_LABELS } from '@shared/Languages'
+
 export default {
   common: {
     runInAllTabs: 'In allen Tabs',
@@ -205,6 +207,7 @@ export default {
     aliasStatus: 'Globales Alias',
     highlightStatus: 'Befehls-Syntax-Hervorhebung',
     pinchZoomStatus: 'Pinch to zoom font',
+    showCloseButton: 'Tab-Schliessen-Schaltflaeche anzeigen',
     fontSize: 'Font size',
     fontFamily: 'Font-Familie',
     cursorStyle: 'Cursor-Typ',
@@ -374,6 +377,9 @@ export default {
     autoApprovalDescribe: 'Erlauben Sie dem Agenten, Tools ohne Bestätigung auszuführen',
     autoExecuteReadOnlyCommands: 'Nur-Lese-Befehle automatisch ausführen',
     autoExecuteReadOnlyCommandsDescribe: 'Nur-Lese-Befehle (z.B. ls, cat, grep) in allen Sitzungen werden ohne Bestätigung automatisch ausgeführt',
+    kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['de-DE'],
+    kbSearchEnabledDescribe:
+      'Automatisch relevante Wissensdatenbank-Inhalte zu Beginn einer neuen Unterhaltung durchsuchen und der KI erlauben, die Wissensdatenbank waehrend der Unterhaltung zu durchsuchen',
     features: 'Funktionen',
     enableCheckpoints: 'Checkpoints aktivieren',
     enableCheckpointsDescribe: 'Ermöglicht der Erweiterung, Checkpoints des Arbeitsbereichs während der Aufgabe zu speichern',
