@@ -19,6 +19,15 @@ publish:
 win:
   executableName: Chaterm CN
   artifactName: ${name}-${version}-cn-setup-${arch}.${ext}
+  target:
+    - target: portable
+      arch:
+        - x64
+        - ia32
+    - target: nsis
+      arch:
+        - x64
+        - ia32
   protocols:
     - name: Chaterm CN
       schemes:
