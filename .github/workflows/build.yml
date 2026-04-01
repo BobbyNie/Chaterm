@@ -172,14 +172,16 @@ jobs:
           name: macos-arm64-build
           path: dist/macos
 
-      - name: List artifacts
+      - name: List all artifacts
         run: |
           echo "Windows artifacts:"
-          ls -la dist/windows/ || true
-          ls -la dist/windows/cn/ || true
+          ls -laR dist/windows/ || true
           echo "macOS artifacts:"
-          ls -la dist/macos/ || true
-          ls -la dist/macos/cn/ || true
+          ls -laR dist/macos/ || true
+          echo "Finding all exe files:"
+          find dist/ -name "*.exe" -type f || true
+          echo "Finding all zip files:"
+          find dist/ -name "*.zip" -type f || true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -190,8 +192,13 @@ jobs:
             Build date: ${{ env.BUILD_VERSION }}
 
             ## Artifacts
-            - Windows installer (CN edition)
-            - macOS Apple Silicon (CN edition)
+            - Windows: Both installer (setup) and portable (no-install) versions
+            - macOS: Apple Silicon and Intel versions
+
+            ## Download Instructions
+            - **Windows Installer**: Use `*-setup-*.exe` for traditional installation
+            - **Windows Portable**: Use `Chaterm*.exe` (no setup) for portable version
+            - **macOS**: Use `*.zip` files for macOS
           files: |
             dist/windows/cn/*.exe
             dist/macos/cn/*.zip
