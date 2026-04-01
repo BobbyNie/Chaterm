@@ -76,14 +76,17 @@ jobs:
         run: npm run build:win:global
 
       - name: Create portable zip from unpacked directory
+        shell: pwsh
         run: |
-          cd dist/cn
+          $version = "${env:BUILD_VERSION}"
+          Write-Host "Creating portable zips for version $version"
+          Set-Location dist/cn
           # Create portable version from unpacked directory
-          Compress-Archive -Path win-unpacked/* -DestinationPath "Chaterm-CN-${env:BUILD_VERSION}-portable-x64.zip"
+          Compress-Archive -Path win-unpacked/* -DestinationPath "Chaterm-CN-$version-portable-x64.zip" -Force
           if (Test-Path win-ia32-unpacked) {
-            Compress-Archive -Path win-ia32-unpacked/* -DestinationPath "Chaterm-CN-${env:BUILD_VERSION}-portable-ia32.zip"
+            Compress-Archive -Path win-ia32-unpacked/* -DestinationPath "Chaterm-CN-$version-portable-ia32.zip" -Force
           }
-          ls -la *.zip
+          Get-ChildItem *.zip | Format-Table Name, Length
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v7
