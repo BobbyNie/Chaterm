@@ -75,6 +75,16 @@ jobs:
         if: github.event.inputs.edition == 'global'
         run: npm run build:win:global
 
+      - name: Create portable zip from unpacked directory
+        run: |
+          cd dist/cn
+          # Create portable version from unpacked directory
+          Compress-Archive -Path win-unpacked/* -DestinationPath "Chaterm-CN-${env:BUILD_VERSION}-portable-x64.zip"
+          if (Test-Path win-ia32-unpacked) {
+            Compress-Archive -Path win-ia32-unpacked/* -DestinationPath "Chaterm-CN-${env:BUILD_VERSION}-portable-ia32.zip"
+          }
+          ls -la *.zip
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -197,10 +207,11 @@ jobs:
 
             ## Download Instructions
             - **Windows Installer**: Use `*-setup-*.exe` for traditional installation
-            - **Windows Portable**: Use `Chaterm*.exe` (no setup) for portable version
+            - **Windows Portable**: Use `*-portable-*.zip` for no-install portable version
             - **macOS**: Use `*.zip` files for macOS
           files: |
             dist/windows/cn/*.exe
+            dist/windows/cn/*-portable-*.zip
             dist/macos/cn/*.zip
           draft: false
           prerelease: false
