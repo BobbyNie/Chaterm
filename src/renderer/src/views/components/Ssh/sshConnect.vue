@@ -293,6 +293,8 @@ export interface sshConnectData {
   comment?: string
   source?: string
   wakeupSource?: string
+  wakeupNewTab?: boolean
+  disablePoolReuse?: boolean
   skipAssetLookup?: boolean
   forkFromConnectionId?: string
 }
@@ -350,6 +352,9 @@ const handleMouseDown = (event) => {
         if (contextmenu.value && contextmenu.value.show) {
           contextmenu.value.show(event)
         }
+        break
+      case 'closeTab':
+        emit('closeTabInTerm', props.activeTabId || props.currentConnectionId)
         break
       case 'none':
         break
@@ -585,15 +590,17 @@ onMounted(async () => {
 
   ensureTransferListener()
   // Enable GPU-accelerated rendering for better performance with large output
-  try {
-    const { WebglAddon } = await import('@xterm/addon-webgl')
-    const webglAddon = new WebglAddon()
-    webglAddon.onContextLoss(() => {
-      webglAddon.dispose()
-    })
-    termInstance.loadAddon(webglAddon)
-  } catch {
-    // WebGL not available, fall back to default canvas renderer
+  if (!config.background?.image && actualTheme !== 'light') {
+    try {
+      const { WebglAddon } = await import('@xterm/addon-webgl')
+      const webglAddon = new WebglAddon()
+      webglAddon.onContextLoss(() => {
+        webglAddon.dispose()
+      })
+      termInstance.loadAddon(webglAddon)
+    } catch {
+      // WebGL not available, fall back to default canvas renderer
+    }
   }
   termInstance.onResize((size) => {
     resizeSSH(size.cols, size.rows)
@@ -619,8 +626,6 @@ onMounted(async () => {
     textarea.addEventListener('compositionend', textareaCompositionListener)
     textarea.addEventListener('paste', textareaPasteListener)
   }
-  const core = (termInstance as any)._core
-  const renderService = core._renderService
   const originalWrite = termInstance.write.bind(termInstance)
 
   // High-throughput detection: bypass expensive processing during bulk output (e.g., cat large file)
@@ -706,14 +711,11 @@ onMounted(async () => {
 
     // Normal mode: full processing
     let processedData = data
-    if (!currentIsUserCall && keywordHighlightService.isEnabled()) {
+    // Only apply keyword highlight when not in alternate/UI modes to avoid corrupting
+    // complex terminal UIs or high-frequency redraw output.
+    if (!currentIsUserCall && terminalMode.value === 'none' && keywordHighlightService.isEnabled()) {
       processedData = keywordHighlightService.applyHighlight(data)
     }
-
-    const originalRequestRefresh = renderService.refreshRows.bind(renderService)
-    const originalTriggerRedraw = renderService._renderDebouncer.refresh.bind(renderService._renderDebouncer)
-    renderService.refreshRows = () => {}
-    renderService._renderDebouncer.refresh = () => {}
 
     originalWrite(processedData, () => {
       if (!currentIsUserCall) {
@@ -724,10 +726,6 @@ onMounted(async () => {
         scheduleScrollToBottom()
       }
     })
-
-    renderService.refreshRows = originalRequestRefresh
-    renderService._renderDebouncer.refresh = originalTriggerRedraw
-    renderService.refreshRows(0, core._bufferService.rows - 1)
   }
   termInstance.write = cusWrite as any
   if (terminalContainer.value) {
@@ -1622,6 +1620,12 @@ const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
         }
 
         const jmsToken = ref(localStorage.getItem('jms-token'))
+        const isWakeupSession = Boolean(
+          props.connectData.wakeupSource ||
+          String(props.connectData.source || '')
+            .toLowerCase()
+            .startsWith('xshell')
+        )
 
         const connData: any = {
           id: connectionId.value, // Session ID (unique for each tab)
@@ -1645,6 +1649,9 @@ const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
           proxyCommand: props.connectData.proxyCommand || '',
           source: props.connectData.source || '',
           wakeupSource: props.connectData.wakeupSource || props.connectData.source || '',
+          wakeupNewTab: props.connectData.wakeupNewTab === true,
+          wakeupTabId: props.connectData.wakeupSource ? props.connectData.uuid : '',
+          disablePoolReuse: props.connectData.disablePoolReuse === true || props.connectData.wakeupNewTab === true || isWakeupSession,
           disablePostConnectProbe: skipAssetLookup
         }
         connData.needProxy = assetInfo?.need_proxy === 1 || false
@@ -4772,11 +4779,9 @@ const contextAct = (action) => {
       })
       break
     case 'disconnect':
-      disconnectSSH()
-      termOndata?.dispose()
-      termOndata = null
-      termOnBinary?.dispose()
-      termOnBinary = null
+      disconnectSSH().then(() => {
+        terminal.value?.focus()
+      })
       break
     case 'reconnect':
       connectSSH()
