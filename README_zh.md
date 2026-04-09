@@ -15,6 +15,10 @@
 <br>
 
 <p align="center">
+ <a href="https://www.producthunt.com/products/chaterm?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-chaterm" target="_blank" rel="noopener noreferrer"><img alt="Chaterm - Deploy, fix, and automate your infra in one terminal. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1118502&theme=light&t=1775636165729"></a>
+</p>
+
+<p align="center">
   <a href="https://www.tbench.ai/leaderboard/terminal-bench/1.0"><img src="https://img.shields.io/badge/Terminal--Bench-Ranked_%232-00D94E?style=for-the-badge&logo=github&logoColor=white" alt="Terminal-Bench"></a>
   <a href="https://aws.amazon.com/cn/blogs/china/chaterm-aws-kms-envelope-encryption-for-zero-trust-security-en/"><img src="https://img.shields.io/badge/AWS-Security-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white&labelColor=232F3E" alt="AWS Security"></a>
   <a href="https://landscape.cncf.io/?item=provisioning--automation-configuration--chaterm"><img src="https://img.shields.io/badge/CNCF-Landscape-0086FF?style=for-the-badge&logo=kubernetes&logoColor=white" alt="CNCF Landscape"></a>
@@ -55,6 +59,7 @@
   - [Achieving Secure and Intelligent Operations for AWS Private Subnets Using Chaterm](https://aws.amazon.com/cn/blogs/china/bastion-using-aws-eice-ec2-instance-connect-endpoint-chaterm-implement-subnet-security-intelligent-en/)
   - [How Chaterm’s Security Architecture Ensures Data Security and Reliability](https://aws.amazon.com/cn/blogs/china/chaterm-aws-kms-envelope-encryption-for-zero-trust-security-en/)
   - [Enhancing DevOps Intelligence with Chaterm Skills and Qwen Models](https://chaterm.ai/blog/posts/agent-skills)
+- [Gold Sponsors](#gold-sponsors)
 - [Contributors](#contributors)
 
 # 产品介绍
@@ -113,7 +118,7 @@ Chaterm 不仅仅是一个更智能的终端，它是一个基础设施代理。
 - 🔌 **插件系统**
 
   通过插件扩展，实现对公有云服务器与 Kubernetes 的统一认证、动态授权与安全加密连接。
-  
+
   提供更高效的资源访问体验，助力基础设施的集中化管理。
 
 ![Preview image](resources/features.webp)
@@ -235,6 +240,10 @@ npm run build:mac
 # For Linux
 npm run build:linux
 ```
+
+## Gold Sponsors
+
+![Preview image](resources/aws.webp) ![Preview image](resources/aliyun.webp)
 
 ## Contributors
 
