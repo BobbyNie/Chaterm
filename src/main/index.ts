@@ -165,42 +165,41 @@ app.whenReady().then(async () => {
   mark('chaterm/main/appReady')
 
   // [Security] Verify ffmpeg.dll integrity asynchronously (Windows Only)
-  // NOTE: Temporarily disabled due to Electron version update requiring new hash
   let ffmpegVerification: Promise<void> | null = null
-  // if (process.platform === 'win32' && process.env.IS_DEV !== 'true') {
-  //   ffmpegVerification = (async () => {
-  //     try {
-  //       const crypto = require('crypto')
-  //       const ffmpegPath = path.join(path.dirname(process.execPath), 'ffmpeg.dll')
-  //       const KNOWN_HASH = '2256D0112A047EC96E67B9F41FC8E7A692136F0DB6A756CCFE4B525826C5F240'
+  if (process.platform === 'win32' && process.env.IS_DEV !== 'true') {
+    ffmpegVerification = (async () => {
+      try {
+        const crypto = require('crypto')
+        const ffmpegPath = path.join(path.dirname(process.execPath), 'ffmpeg.dll')
+        const KNOWN_HASH = 'B64F08946914D8CE2BDAAEF5796ADCF8398EE5BA55223AFBB9F14072F4302B45'
 
-  //       try {
-  //         await fs.access(ffmpegPath)
-  //       } catch {
-  //         logger.warn('[Security] ffmpeg.dll not found for verification.')
-  //         return
-  //       }
+        try {
+          await fs.access(ffmpegPath)
+        } catch {
+          logger.warn('[Security] ffmpeg.dll not found for verification.')
+          return
+        }
 
-  //       logger.info('[Security] Verifying ffmpeg.dll integrity...')
-  //       const buffer = await fs.readFile(ffmpegPath)
-  //       const hash = crypto.createHash('sha256').update(buffer).digest('hex').toUpperCase()
+        logger.info('[Security] Verifying ffmpeg.dll integrity...')
+        const buffer = await fs.readFile(ffmpegPath)
+        const hash = crypto.createHash('sha256').update(buffer).digest('hex').toUpperCase()
 
-  //       if (hash !== KNOWN_HASH) {
-  //         logger.error(`[Security] CRITICAL: ffmpeg.dll hash mismatch! Expected: ${KNOWN_HASH}, Actual: ${hash}`)
-  //         const { dialog } = require('electron')
-  //         dialog.showErrorBox(
-  //           'Security Error',
-  //           'System integrity check failed (ffmpeg.dll). The application files may have been tampered with. Application will terminate.'
-  //         )
-  //         app.quit()
-  //         process.exit(1) // Force exit
-  //       }
-  //       logger.info('[Security] ffmpeg.dll integrity verified.')
-  //     } catch (error) {
-  //       logger.error('[Security] Failed to verify ffmpeg.dll', { error: error })
-  //     }
-  //   })()
-  // }
+        if (hash !== KNOWN_HASH) {
+          logger.error(`[Security] CRITICAL: ffmpeg.dll hash mismatch! Expected: ${KNOWN_HASH}, Actual: ${hash}`)
+          const { dialog } = require('electron')
+          dialog.showErrorBox(
+            'Security Error',
+            'System integrity check failed (ffmpeg.dll). The application files may have been tampered with. Application will terminate.'
+          )
+          app.quit()
+          process.exit(1) // Force exit
+        }
+        logger.info('[Security] ffmpeg.dll integrity verified.')
+      } catch (error) {
+        logger.error('[Security] Failed to verify ffmpeg.dll', { error: error })
+      }
+    })()
+  }
   // Set edition-specific AppUserModelId for Windows taskbar grouping and process identification
   const edition = getEdition()
   const appUserModelId = edition === 'global' ? 'ai.chaterm.global' : 'ai.chaterm.cn'

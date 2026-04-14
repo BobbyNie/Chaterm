@@ -2,6 +2,48 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
+      "version": "2026.04.14",
+      "date": "2026-04-14",
+      "highlights": {
+        "zh-CN": [
+          "Sync upstream v0.10.1: LLM-powered context summarization for better AI conversation",
+          "Sync upstream: web_fetch tool for fetching and reading web content",
+          "Sync upstream: DOMPurify XSS protection for enhanced security",
+          "Sync upstream: Telemetry restricted to global edition only",
+          "Sync upstream: Remove Babel configuration, simplify build chain",
+          "Sync upstream: Fix abnormal drag position in file transfer"
+        ],
+        "en-US": [
+          "Synced upstream v0.10.1: LLM-powered context summarization for better AI conversation",
+          "Synced upstream: web_fetch tool for fetching and reading web content",
+          "Synced upstream: DOMPurify XSS protection for enhanced security",
+          "Synced upstream: Telemetry restricted to global edition only",
+          "Synced upstream: Remove Babel configuration, simplify build chain",
+          "Synced upstream: Fix abnormal drag position in file transfer"
+        ]
+      }
+    },
+    {
+      "version": "0.10.1",
+      "date": "2026-04-13",
+      "highlights": {
+        "zh-CN": [
+          "知识库：支持按内容搜索笔记；从外部拖文件进知识库更稳定",
+          "AI：可把网页链接交给助手阅读；长文件会先整理摘要再进对话，更省上下文；修复部分新款模型连不上或检测失败的问题",
+          "SSH：支持端口隧道转发；复用连接、唤醒已有标签等选项让反复登录更少折腾",
+          "终端：长日志滚动时显示更稳、不易乱行；断线后自动回到终端输入区；可选显示关闭按钮，鼠标中键可关闭当前标签",
+          "主机列表：堡垒机主机分组更清晰，列表打开更快、布局更好认"
+        ],
+        "en-US": [
+          "Knowledge base: search your notes by meaning; dragging files in from outside is more reliable",
+          "AI: share a web link and the assistant can read it; long files are summarized so they use less context; fixes model connection checks for some newer models",
+          "SSH: port tunnel forwarding; options to reuse connections and wake an existing tab mean fewer repeated logins",
+          "Terminal: steadier display when scrolling long logs; after a disconnect, focus returns to the terminal; optional tab close button and middle-click to close the current tab",
+          "Host list: clearer grouping for bastion hosts, faster loading, and easier-to-scan layout"
+        ]
+      }
+    },
+    {
       "version": "2026.04.01",
       "date": "2026-04-01",
       "highlights": {

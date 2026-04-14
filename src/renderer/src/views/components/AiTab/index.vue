@@ -131,7 +131,16 @@
                   v-for="{ message, historyIndex } in pair.assistants"
                   :key="message.id"
                 >
+                  <!-- Context truncation notice - standalone system message -->
                   <div
+                    v-if="message.say === 'context_truncated'"
+                    class="context-truncated-notice"
+                  >
+                    <CompressOutlined class="context-truncated-icon" />
+                    <span>{{ $t('ai.contextTruncated') }}</span>
+                  </div>
+                  <div
+                    v-else
                     class="assistant-message-container"
                     data-testid="ai-message"
                     :class="{
@@ -764,6 +773,7 @@ import {
   CheckCircleOutlined,
   CheckOutlined,
   CloseOutlined,
+  CompressOutlined,
   CopyOutlined,
   DeleteOutlined,
   DislikeOutlined,

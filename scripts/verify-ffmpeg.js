@@ -7,7 +7,7 @@ if (process.platform !== 'win32') {
   process.exit(0)
 }
 
-const KNOWN_HASH = '2256D0112A047EC96E67B9F41FC8E7A692136F0DB6A756CCFE4B525826C5F240'
+const KNOWN_HASH = 'B64F08946914D8CE2BDAAEF5796ADCF8398EE5BA55223AFBB9F14072F4302B45'
 
 const ffmpegPath = path.join(__dirname, '../node_modules/electron/dist/ffmpeg.dll')
 
