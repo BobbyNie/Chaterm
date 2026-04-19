@@ -290,6 +290,17 @@ export default {
     extensions: '擴展',
     about: '關於',
     documentation: '文檔',
+    accountManagement: '帳號管理',
+    deactivateAccount: '註銷帳號',
+    deactivateAccountDescription: '如需停止使用目前帳號，可在這裡申請註銷。此操作會清除目前裝置的登入狀態。',
+    deactivateAccountConfirmTitle: '確認註銷帳號',
+    deactivateAccountConfirmDescription: '註銷帳號屬於高風險操作。若要繼續，請輸入下方確認關鍵字。',
+    deactivateAccountConfirmKeyword: '註銷',
+    deactivateAccountInputPlaceholder: '請輸入「{keyword}」以繼續',
+    deactivateAccountSuccess: '帳號已註銷',
+    deactivateAccountSuccessDescription: '目前登入狀態已清除。',
+    deactivateAccountFailed: '帳號註銷失敗',
+    deactivateAccountUserMissing: '無法判定目前使用者帳號。',
     privacy: '隱私',
     trustedDevices: '可信設備',
     trustedDevicesDescription: '這些設備已通過驗證，下次登錄可免驗證。移除後，該設備下次登錄需重新驗證。',
@@ -507,7 +518,7 @@ export default {
     saveBackgroundFailed: '保存背景圖片失敗'
   },
   extensions: {
-    extensions: '擴展',
+    plugins: '插件',
     alias: '別名',
     fuzzySearch: '模糊搜尋',
     aliasDescription: '全局Alias設置',
@@ -808,7 +819,7 @@ export default {
     welcome: '您好,需要在終端做什麼操作?',
     welcomeTips: ['您好,請問需要在終端做什麼操作?', '輸入 @ 選擇上下文，輸入 / 選擇自訂命令', '按下 Shift + Tab 切換模式'],
     loginPrompt: '登錄後即可使用 AI 功能，新用戶註冊免費使用兩週',
-    searchHost: '輸入IP搜尋',
+    searchHost: '輸入 IP、主機名稱或堡壘機備註搜尋',
     noMatchingHosts: '無匹配主機',
     hosts: '主機',
     docs: '知識庫',
@@ -967,7 +978,8 @@ export default {
     clearSelection: '清空',
     addSelected: '新增所選({count})',
     switchNotSupportAgent: '網路設備不支持 Agent 模式，已自動切換為 Command 模式',
-    contextTruncated: '為釋放上下文空間，較早的對話內容正在壓縮，近期訊息已保留。'
+    contextTruncating: '正在自動壓縮上下文資訊',
+    contextTruncated: '上下文資訊已自動壓縮'
   },
   keyChain: {
     keyChain: '密鑰',

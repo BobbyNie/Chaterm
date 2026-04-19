@@ -290,6 +290,19 @@ export default {
     extensions: 'Erweiterungen',
     about: 'Über',
     documentation: 'Dokumentation',
+    accountManagement: 'Kontoverwaltung',
+    deactivateAccount: 'Konto löschen',
+    deactivateAccountDescription:
+      'Wenn Sie dieses Konto nicht mehr verwenden möchten, können Sie es hier löschen. Dadurch wird der aktuelle Anmeldestatus auf diesem Gerät entfernt.',
+    deactivateAccountConfirmTitle: 'Kontolöschung bestätigen',
+    deactivateAccountConfirmDescription:
+      'Das Löschen des Kontos ist ein Vorgang mit hohem Risiko. Geben Sie zur Bestätigung das unten angezeigte Schlüsselwort ein.',
+    deactivateAccountConfirmKeyword: 'LÖSCHEN',
+    deactivateAccountInputPlaceholder: 'Geben Sie "{keyword}" ein, um fortzufahren',
+    deactivateAccountSuccess: 'Konto gelöscht',
+    deactivateAccountSuccessDescription: 'Ihr Konto wurde gelöscht und der aktuelle Anmeldestatus wurde entfernt.',
+    deactivateAccountFailed: 'Konto konnte nicht gelöscht werden',
+    deactivateAccountUserMissing: 'Das aktuelle Benutzerkonto konnte nicht ermittelt werden.',
     privacy: 'Datenschutz',
     trustedDevices: 'Vertrauenswürdige Geräte',
     trustedDevicesDescription:
@@ -517,7 +530,7 @@ export default {
     saveBackgroundFailed: 'Hintergrundbild speichern fehlgeschlagen'
   },
   extensions: {
-    extensions: 'Erweiterungen',
+    plugins: 'Plugins',
     alias: 'Alias',
     aliasDescription: 'Globale Alias-Konfiguration',
     fuzzySearch: 'Fuzzy-Suche',
@@ -828,7 +841,7 @@ export default {
     welcome: 'Was kann ich für Sie im Terminal tun?',
     welcomeTips: ['Was kann ich für Sie im Terminal tun?', '@ für Kontext, / für Befehle', 'Drücken Sie Shift + Tab um den Modus zu wechseln'],
     loginPrompt: 'Login um AI-Features zu verwenden, neue Benutzer können für 2 Wochen kostenlos verwenden',
-    searchHost: 'Nach IP suchen',
+    searchHost: 'Nach IP, Hostname oder Bastion-Hinweis suchen',
     noMatchingHosts: 'Keine übereinstimmenden Hosts',
     hosts: 'Hosts',
     docs: 'Dokumente',
@@ -986,7 +999,8 @@ export default {
     clearSelection: 'Auswahl löschen',
     addSelected: 'Ausgewählte hinzufügen({count})',
     switchNotSupportAgent: 'Netzwerkgeräte unterstützen kein Agent-Modus, automatisch zum Command-Modus gewechselt',
-    contextTruncated: 'Frühere Nachrichten werden komprimiert, um Kontextplatz freizugeben. Aktuelle Nachrichten bleiben erhalten.'
+    contextTruncating: 'Kontextinformationen werden automatisch komprimiert',
+    contextTruncated: 'Kontextinformationen wurden automatisch komprimiert'
   },
   keyChain: {
     keyChain: 'Schlüsselkette',

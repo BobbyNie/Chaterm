@@ -251,7 +251,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
 
   describe('Menu item names', () => {
     it('should have correct menu item names', () => {
-      const expectedNames = ['Hosts', 'Assets', 'Files', 'Snippets', 'Knowledge', 'Extensions', 'AI', 'Kubernetes', 'Setting']
+      const expectedNames = ['Hosts', 'Assets', 'Files', 'Snippets', 'Knowledge', 'Plugins', 'AI', 'Kubernetes', 'Setting']
 
       const actualNames = menuTabsData.map((item) => item.name)
       expect(actualNames).toEqual(expectedNames)

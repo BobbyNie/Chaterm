@@ -290,6 +290,18 @@ export default {
     extensions: '확장 기능',
     about: '소개',
     documentation: '문서',
+    accountManagement: '계정 관리',
+    deactivateAccount: '계정 삭제',
+    deactivateAccountDescription:
+      '이 계정을 더 이상 사용하지 않으려면 여기에서 삭제할 수 있습니다. 삭제하면 현재 기기의 로그인 상태도 함께 지워집니다.',
+    deactivateAccountConfirmTitle: '계정 삭제 확인',
+    deactivateAccountConfirmDescription: '계정 삭제는 위험도가 높은 작업입니다. 계속하려면 아래 확인 문구를 입력하세요.',
+    deactivateAccountConfirmKeyword: '삭제',
+    deactivateAccountInputPlaceholder: '계속하려면 "{keyword}"를 입력하세요',
+    deactivateAccountSuccess: '계정이 삭제되었습니다',
+    deactivateAccountSuccessDescription: '계정이 삭제되었고 현재 로그인 상태도 지워졌습니다.',
+    deactivateAccountFailed: '계정을 삭제하지 못했습니다',
+    deactivateAccountUserMissing: '현재 사용자 계정을 확인할 수 없습니다.',
     privacy: '개인 정보 보호',
     trustedDevices: '신뢰할 수 있는 기기',
     trustedDevicesDescription: '이 기기들은 검증되었으며 다음 로그인 시 검증을 건너뛸 수 있습니다. 제거 후에는 해당 기기에서 다시 검증해야 합니다.',
@@ -507,7 +519,7 @@ export default {
     saveBackgroundFailed: '배경 이미지 저장 실패'
   },
   extensions: {
-    extensions: '확장 기능',
+    plugins: '플러그인',
     alias: '별칭',
     aliasDescription: '전역 별칭 설정',
     fuzzySearch: '모호한 검색',
@@ -813,7 +825,7 @@ export default {
     welcome: '터미널에서 무엇을 할 수 있을까요?',
     welcomeTips: ['터미널에서 무엇을 할 수 있을까요?', '@로 컨텍스트 선택, /로 사용자 지정 명령 선택', 'Shift + Tab를 눌러 모드를 전환'],
     loginPrompt: 'AI 기능을 사용하려면 로그인해주세요, 새 사용자는 무료로 2주 동안 사용할 수 있습니다',
-    searchHost: 'IP로 검색',
+    searchHost: 'IP, 호스트 이름 또는 비고로 검색',
     noMatchingHosts: '일치하는 호스트 없음',
     hosts: '호스트',
     docs: '문서',
@@ -971,7 +983,8 @@ export default {
     clearSelection: '선택 지우기',
     addSelected: '선택 추가({count})',
     switchNotSupportAgent: '네트워크 장치는 Agent 모드를 지원하지 않습니다. Command 모드로 자동 전환되었습니다',
-    contextTruncated: '컨텍스트 공간 확보를 위해 이전 메시지를 압축하고 있습니다. 최근 메시지는 유지됩니다.'
+    contextTruncating: '컨텍스트 정보를 자동으로 압축하는 중입니다',
+    contextTruncated: '컨텍스트 정보가 자동으로 압축되었습니다'
   },
   keyChain: {
     keyChain: '키체인',

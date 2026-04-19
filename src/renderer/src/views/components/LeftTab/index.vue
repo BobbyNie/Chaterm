@@ -79,7 +79,7 @@
         >
           <img
             v-if="view.icon.includes('/')"
-            :src="view.icon"
+            :src="pluginViewIconSrc(view.icon)"
             alt=""
           />
           <i
@@ -134,9 +134,13 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { userInfoStore } from '@/store/index'
 import { pinia } from '@/main'
 import eventBus from '@/utils/eventBus'
+import { convertFileLocalResourceSrc } from '@/utils/convertFileLocalResourceSrc'
 
 const logger = createRendererLogger('leftTab')
 const pluginViews = ref<any[]>([])
+
+/** file:// URLs cannot be used in img src in the renderer; map via custom protocol (see main process). */
+const pluginViewIconSrc = (icon: string) => convertFileLocalResourceSrc(icon)
 const userStore = userInfoStore(pinia)
 const activeKey = ref('workspace')
 const menuClick = (key) => {

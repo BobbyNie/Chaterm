@@ -288,6 +288,17 @@ export default {
     extensions: '扩展',
     about: '关于',
     documentation: '文档',
+    accountManagement: '账号管理',
+    deactivateAccount: '注销账号',
+    deactivateAccountDescription: '如需停止使用当前账号，可在这里申请注销。该操作会清除当前设备的登录状态。',
+    deactivateAccountConfirmTitle: '确认注销账号',
+    deactivateAccountConfirmDescription: '注销账号属于高风险操作。若要继续，请输入下方确认关键字。',
+    deactivateAccountConfirmKeyword: '注销',
+    deactivateAccountInputPlaceholder: '请输入“{keyword}”以继续',
+    deactivateAccountSuccess: '账号已注销',
+    deactivateAccountSuccessDescription: '当前登录状态已清除。',
+    deactivateAccountFailed: '账号注销失败',
+    deactivateAccountUserMissing: '无法确定当前用户账号。',
     privacy: '隐私',
     trustedDevices: '可信设备',
     trustedDevicesDescription: '这些设备已通过验证，下次登录可免验证。移除后，该设备下次登录需重新验证。',
@@ -505,7 +516,7 @@ export default {
     saveBackgroundFailed: '保存背景图片失败'
   },
   extensions: {
-    extensions: '扩展',
+    plugins: '插件',
     alias: '别名',
     fuzzySearch: '模糊搜索',
     aliasDescription: '全局Alias配置',
@@ -807,7 +818,7 @@ export default {
     welcome: '您好,请问需要在终端做什么操作?',
     welcomeTips: ['您好,请问需要在终端做什么操作?', '输入 @ 选择上下文，输入 / 选择自定义命令', '按下 Shift + Tab 切换模式'],
     loginPrompt: '登录后即可使用 AI 功能，新用户注册免费使用两周',
-    searchHost: '输入IP搜索',
+    searchHost: '输入 IP、主机名或堡垒机备注搜索',
     noMatchingHosts: '无匹配主机',
     hosts: '主机',
     docs: '知识库',
@@ -966,7 +977,8 @@ export default {
     clearSelection: '清空',
     addSelected: '添加所选({count})',
     switchNotSupportAgent: '网络设备不支持 Agent 模式，已自动切换为 Command 模式',
-    contextTruncated: '为释放上下文空间，较早的对话内容正在压缩，近期消息已保留。'
+    contextTruncating: '正在自动压缩上下文信息',
+    contextTruncated: '上下文信息已自动压缩'
   },
   keyChain: {
     keyChain: '密钥',

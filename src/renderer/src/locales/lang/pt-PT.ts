@@ -290,6 +290,18 @@ export default {
     extensions: 'Extensões',
     about: 'Sobre',
     documentation: 'Documentação',
+    accountManagement: 'Gestão da conta',
+    deactivateAccount: 'Eliminar conta',
+    deactivateAccountDescription:
+      'Se já não quiser utilizar esta conta, pode eliminá-la aqui. Isto irá limpar o estado de sessão atual neste dispositivo.',
+    deactivateAccountConfirmTitle: 'Confirmar eliminação da conta',
+    deactivateAccountConfirmDescription: 'Eliminar a conta é uma ação de alto risco. Para continuar, introduza a palavra de confirmação abaixo.',
+    deactivateAccountConfirmKeyword: 'ELIMINAR',
+    deactivateAccountInputPlaceholder: 'Introduza "{keyword}" para continuar',
+    deactivateAccountSuccess: 'Conta eliminada',
+    deactivateAccountSuccessDescription: 'A sua conta foi eliminada e o estado de sessão atual foi limpo.',
+    deactivateAccountFailed: 'Falha ao eliminar a conta',
+    deactivateAccountUserMissing: 'Não foi possível determinar a conta do utilizador atual.',
     privacy: 'Privacidade',
     trustedDevices: 'Dispositivos confiáveis',
     trustedDevicesDescription:
@@ -516,7 +528,7 @@ export default {
     saveBackgroundFailed: 'Falha ao guardar imagem de fundo'
   },
   extensions: {
-    extensions: 'Extensões',
+    plugins: 'Plugins',
     alias: 'Alias',
     aliasDescription: 'Configuração global de alias',
     fuzzySearch: 'Pesquisa difusa',
@@ -826,7 +838,7 @@ export default {
     welcome: 'O que posso fazer para você no terminal?',
     welcomeTips: ['O que posso fazer para você no terminal?', '@ para contexto, / para comandos', 'Pressione Shift + Tab para alternar modo'],
     loginPrompt: 'Login para usar recursos de IA, novos usuários podem usar gratuitamente por duas semanas',
-    searchHost: 'Pesquisar por IP',
+    searchHost: 'Pesquisar por IP, hostname ou nota do bastion',
     noMatchingHosts: 'Nenhum host correspondente',
     hosts: 'Hosts',
     docs: 'Documentos',
@@ -984,7 +996,8 @@ export default {
     clearSelection: 'Limpar',
     addSelected: 'Adicionar selecionados({count})',
     switchNotSupportAgent: 'Dispositivos de rede não suportam modo Agent, automaticamente mudado para modo Command',
-    contextTruncated: 'A comprimir mensagens anteriores para libertar espaço de contexto. As mensagens recentes foram preservadas.'
+    contextTruncating: 'A comprimir automaticamente a informação de contexto',
+    contextTruncated: 'A informação de contexto foi comprimida automaticamente'
   },
   keyChain: {
     keyChain: 'Keychain',
