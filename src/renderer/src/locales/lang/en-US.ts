@@ -98,6 +98,7 @@ export default {
     pleaseInputPrivateKey: 'Please input private key',
     localhost: 'Localhost',
     favoriteBar: 'Favorites',
+    recentConnections: 'Recent Connections',
     executeCommandToAllWindows: 'Execute command to all windows',
     broadcastTo: 'Broadcast to {count} terminals',
     reloadAliasDataFailed: 'Failed to reload alias data',
@@ -391,6 +392,9 @@ export default {
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['en-US'],
     kbSearchEnabledDescribe:
       'Automatically search relevant knowledge base content when starting a new conversation, and allow AI to search the knowledge base during conversations',
+    experienceExtractionEnabled: 'Automatic Experience Capture',
+    experienceExtractionEnabledDescribe:
+      'After a task completes successfully, automatically capture reusable experience into the knowledge base and, together with knowledge base retrieval, significantly improve AI efficiency and stability on similar tasks.',
     features: 'Features',
     enableCheckpoints: 'Enable Checkpoints',
     enableCheckpointsDescribe: 'Enables extension to save checkpoints of workspace throughout the task',
@@ -632,7 +636,8 @@ export default {
       fontSizeDecrease: 'Font Size Decrease',
       toggleLayout: 'Toggle Layout (Terminal/Agents)',
       toggleAgentsLeftSidebar: 'Toggle Agents Left Sidebar',
-      switchAiMode: 'Switch AI Mode'
+      switchAiMode: 'Switch AI Mode',
+      aiSuggestCommand: 'AI Command Suggestion'
     },
     hints: {
       sendOrToggleAi: 'Chat With AI',
@@ -878,6 +883,7 @@ export default {
     searchHistoryPH: 'Please Input',
     loading: 'loading...',
     loadMore: 'load more',
+    historyLoadHint: 'Older messages are available. Scroll up to load them.',
     copyToClipboard: 'Copy to clipboard',
     retry: 'Retry',
     taskCompleted: 'Task Completed',

@@ -42,6 +42,7 @@ import {
   initializeStorageMain,
   testStorageFromMain as testRendererStorageFromMain,
   getGlobalState,
+  updateGlobalState,
   getAllExtensionState
 } from './agent/core/storage/state'
 import { getTaskMetadata, saveTaskTitle, saveTaskFavorite, getTaskList } from './agent/core/storage/disk'
@@ -56,6 +57,7 @@ import * as fsSync from 'fs'
 import { pathToFileURL } from 'url'
 import { loadAllPlugins } from './plugin/pluginLoader'
 import {
+  getInstalledPlugin,
   getAllPluginVersions,
   installPlugin,
   listPlugins,
@@ -80,6 +82,117 @@ import { initLogging, logRendererCrash } from '@logging'
 import { parseXshellWakeupFromArgv, redactXshellWakeupForLog, type XshellWakeupPayload } from './integrations/xshellWakeup'
 
 const logger = createLogger('main')
+
+type PreinstalledPluginConfig = {
+  id: string
+  fileName?: string
+  required?: boolean
+  autoInstall?: boolean
+  source?: 'preinstalled' | 'store' | 'local'
+}
+
+const parsePolicyEnabled = (raw: unknown): boolean | null => {
+  if (typeof raw !== 'string') return null
+  const normalized = raw.trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+  return null
+}
+
+const parseDeployStatus = (raw: unknown): number => {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
+  if (typeof raw !== 'string') return 0
+  const parsed = Number.parseInt(raw.trim(), 10)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const parsePreinstalledPluginConfig = (): PreinstalledPluginConfig[] => {
+  const raw = process.env.CHATERM_PREINSTALLED_PLUGINS
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((item): item is PreinstalledPluginConfig => typeof item?.id === 'string' && item.id.trim().length > 0)
+  } catch (error) {
+    logger.warn('Failed to parse preinstalled plugin config', { error: error })
+    return []
+  }
+}
+
+const compareVersion = (a?: string | null, b?: string | null): number => {
+  if (!a && !b) return 0
+  if (!a) return -1
+  if (!b) return 1
+  const pa = a.split('.').map((n) => Number.parseInt(n, 10) || 0)
+  const pb = b.split('.').map((n) => Number.parseInt(n, 10) || 0)
+  const length = Math.max(pa.length, pb.length)
+  for (let i = 0; i < length; i++) {
+    const va = pa[i] || 0
+    const vb = pb[i] || 0
+    if (va > vb) return 1
+    if (va < vb) return -1
+  }
+  return 0
+}
+
+const getPreinstalledPluginPackagePath = (plugin: PreinstalledPluginConfig): string => {
+  const fileName = plugin.fileName || `${plugin.id}.chaterm`
+  const resourceDir = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources')
+  return path.join(resourceDir, 'preinstalled-plugins', fileName)
+}
+
+const bootstrapPreinstalledPlugins = async () => {
+  if (parseDeployStatus(process.env.CHATERM_DEPLOY_STATUS) === 0) {
+    return
+  }
+
+  const configuredPlugins = parsePreinstalledPluginConfig().filter((plugin) => plugin.autoInstall !== false)
+  if (configuredPlugins.length === 0) {
+    return
+  }
+
+  for (const plugin of configuredPlugins) {
+    const packagePath = getPreinstalledPluginPackagePath(plugin)
+    if (!fsSync.existsSync(packagePath)) {
+      logger.warn('Preinstalled plugin package not found', { pluginId: plugin.id, packagePath })
+      continue
+    }
+
+    const installed = getInstalledPlugin(plugin.id)
+    let shouldInstall = !installed
+
+    try {
+      const zip = new (require('adm-zip'))(packagePath)
+      const entry = zip.getEntry('plugin.json')
+      if (!entry) {
+        logger.warn('Preinstalled plugin package missing plugin.json', { pluginId: plugin.id, packagePath })
+        continue
+      }
+      const manifest = JSON.parse(zip.readAsText(entry)) as PluginManifest
+      if (!installed || compareVersion(installed.version, manifest.version) < 0) {
+        shouldInstall = true
+      } else {
+        shouldInstall = false
+      }
+    } catch (error) {
+      logger.warn('Failed to inspect preinstalled plugin package', { pluginId: plugin.id, packagePath, error: error })
+      continue
+    }
+
+    if (!shouldInstall) {
+      continue
+    }
+
+    if (installed) {
+      uninstallPlugin(plugin.id, { force: true })
+    }
+
+    installPlugin(packagePath, {
+      source: plugin.source || 'preinstalled',
+      required: plugin.required === true
+    })
+  }
+}
 
 let mainWindow: BrowserWindow
 let COOKIE_URL = 'http://localhost'
@@ -171,7 +284,7 @@ app.whenReady().then(async () => {
       try {
         const crypto = require('crypto')
         const ffmpegPath = path.join(path.dirname(process.execPath), 'ffmpeg.dll')
-        const KNOWN_HASH = '643B7BACE9228642DEBF58469BAC31C7DAC5E67F591AED034CA39CDFF88E72E6'
+        const KNOWN_HASH = 'F7EC87420582EC37E15B9001C3D06C0A606BB34C3DE889C515B14112621D2259'
 
         try {
           await fs.access(ffmpegPath)
@@ -216,6 +329,10 @@ app.whenReady().then(async () => {
   protocol.handle('local-resource', (request) => {
     let filePath = request.url.slice('local-resource://'.length)
     filePath = decodeURIComponent(filePath)
+
+    if (process.platform === 'win32' && /^\/[A-Za-z]:\//.test(filePath)) {
+      filePath = filePath.slice(1)
+    }
 
     if (filePath.length >= 2 && /[A-Z]/.test(filePath[0]) && filePath[1] === '/') {
       filePath = filePath[0] + ':' + filePath.slice(1)
@@ -411,6 +528,10 @@ app.whenReady().then(async () => {
       telemetrySetting = (await getGlobalState('telemetrySetting')) || 'enabled'
     } catch (error) {
       telemetrySetting = 'enabled'
+    }
+    if (parsePolicyEnabled(process.env.CHATERM_TELEMETRY_ENABLED) === false) {
+      telemetrySetting = 'disabled'
+      await updateGlobalState('telemetrySetting', 'disabled')
     }
 
     if (controller) {
@@ -1049,6 +1170,13 @@ function setupIPC(): void {
         }
       }
 
+      // Install preloaded plugins after the current user is resolved so they go to the correct user scope.
+      try {
+        await bootstrapPreinstalledPlugins()
+      } catch (error) {
+        logger.warn('Failed to bootstrap preinstalled plugins after login', { value: error })
+      }
+
       // Reload plugins after user login to switch to per-user plugin directory
       try {
         await loadAllPlugins()
@@ -1056,10 +1184,23 @@ function setupIPC(): void {
         logger.warn('Failed to reload plugins after login', { value: error })
       }
 
-      // Initialize KB search manager if the setting is enabled
+      // Initialize KB search manager if enabled by user setting / policy.
+      // CHATERM_KB_SEARCH_ENABLED enforces enterprise policy only when set to false.
       try {
-        const kbSearchEnabled = await getGlobalState('kbSearchEnabled')
-        if (kbSearchEnabled === undefined || kbSearchEnabled === null || kbSearchEnabled) {
+        let kbSearchEnabled = await getGlobalState('kbSearchEnabled')
+        const rawPolicy = process.env.CHATERM_KB_SEARCH_ENABLED
+        let kbPolicyEnabled: boolean | null = null
+        if (typeof rawPolicy === 'string') {
+          const normalized = rawPolicy.trim().toLowerCase()
+          if (['1', 'true', 'yes', 'on'].includes(normalized)) kbPolicyEnabled = true
+          if (['0', 'false', 'no', 'off'].includes(normalized)) kbPolicyEnabled = false
+        }
+        if (kbPolicyEnabled === false) {
+          kbSearchEnabled = false
+          await updateGlobalState('kbSearchEnabled', false)
+        }
+
+        if (kbSearchEnabled !== false) {
           const edition = getEdition()
           const region = edition === 'cn' ? 'cn' : 'global'
 
@@ -1405,8 +1546,10 @@ function setupIPC(): void {
       if (!uid) {
         throw new Error('User ID is required')
       }
+      const dataSyncPolicyEnabled = parsePolicyEnabled(process.env.CHATERM_DATA_SYNC_ENABLED)
+      const resolvedEnabled = dataSyncPolicyEnabled === false ? false : enabled
 
-      if (enabled) {
+      if (resolvedEnabled) {
         if (!dataSyncController) {
           const dbPath = getChatermDbPathForUser(uid)
           logger.info(`Starting data sync service for user ${uid}...`)
@@ -1436,7 +1579,7 @@ function setupIPC(): void {
           logger.info('Data sync service stopped')
         }
       }
-      return { success: true }
+      return { success: true, enabled: resolvedEnabled, managedByPolicy: dataSyncPolicyEnabled === false }
     } catch (e: any) {
       logger.warn('Failed to handle data-sync:set-enabled', { error: e?.message || String(e) })
       return { success: false, error: e?.message || String(e) }
@@ -1892,6 +2035,14 @@ ipcMain.handle('asset-route-local-get', async (_, data) => {
   } catch (error) {
     logger.error('Chaterm query failed', { error: error })
     return null
+  }
+})
+
+ipcMain.handle('record-connection', async (_, data) => {
+  try {
+    chatermDbService.recordConnection(data)
+  } catch (error) {
+    logger.error('Record connection failed', { error: error })
   }
 })
 
@@ -2391,6 +2542,17 @@ ipcMain.handle('agent-chaterm-messages', async (_, data) => {
   }
 })
 
+ipcMain.handle('agent-chaterm-messages-page', async (_, data) => {
+  try {
+    const { taskId, beforeCursor = null, limit = 40 } = data
+    const result = await chatermDbService.getSavedChatermMessagesPage(taskId, { beforeCursor, limit })
+    return result
+  } catch (error) {
+    logger.error('Chaterm get paged UI messages failed', { error: error })
+    return { messages: [], nextCursor: null, hasMore: false }
+  }
+})
+
 // This code is newly added to handle calls from the renderer process
 ipcMain.handle('execute-remote-command', async () => {
   logger.info('Received execute-remote-command IPC call') // Add log
@@ -2810,7 +2972,7 @@ ipcMain.handle('capture-telemetry-event', async (_, { eventType, data }) => {
 // Plugins
 
 ipcMain.handle('plugins.install', async (_event, pluginFilePath: string) => {
-  const record = installPlugin(pluginFilePath)
+  const record = installPlugin(pluginFilePath, { source: 'local', required: false })
   await loadAllPlugins()
   return record
 })
@@ -2827,10 +2989,11 @@ ipcMain.handle(
     }
   ) => {
     const { pluginId, version, fileName, data } = payload
+    const installedPlugin = getInstalledPlugin(pluginId)
 
     // Uninstall the old version
     try {
-      await uninstallPlugin(pluginId)
+      await uninstallPlugin(pluginId, { force: true })
     } catch (e) {
       logger.warn('uninstall before update failed, continue install', { value: e })
     }
@@ -2846,7 +3009,10 @@ ipcMain.handle(
     const buffer = Buffer.from(data) // ArrayBuffer -> Buffer
     await fsSync.promises.writeFile(tmpFilePath, buffer)
 
-    const record = installPlugin(tmpFilePath)
+    const record = installPlugin(tmpFilePath, {
+      source: installedPlugin?.source || 'store',
+      required: installedPlugin?.required === true
+    })
     await loadAllPlugins()
     return record
   }
@@ -2854,6 +3020,11 @@ ipcMain.handle(
 
 ipcMain.handle('plugins.uninstall', async (_event, pluginId: string) => {
   uninstallPlugin(pluginId)
+  await loadAllPlugins()
+  return { ok: true }
+})
+
+ipcMain.handle('plugins.reload', async () => {
   await loadAllPlugins()
   return { ok: true }
 })
@@ -2888,6 +3059,8 @@ ipcMain.handle('plugins.listUi', async () => {
       id: p.id,
       version: p.version,
       enabled: p.enabled,
+      required: p.required === true,
+      source: p.source || 'local',
       name,
       description,
       iconUrl,

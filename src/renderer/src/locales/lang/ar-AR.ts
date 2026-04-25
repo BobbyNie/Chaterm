@@ -86,6 +86,7 @@ export default {
     pleaseInputPrivateKey: 'الرجاء إدخال المفتاح الخاص',
     localhost: 'المضيف المحلي',
     favoriteBar: 'المفضلة',
+    recentConnections: 'الاتصالات الأخيرة',
     executeCommandToAllWindows: 'تنفيذ الأوامر في جميع النوافذ',
     broadcastTo: 'توصيل إلى {count} التبويبات',
     reloadAliasDataFailed: 'خطأ في تحديث بيانات الألياس',
@@ -378,6 +379,9 @@ export default {
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['ar-AR'],
     kbSearchEnabledDescribe:
       'البحث التلقائي عن المحتوى ذي الصلة في قاعدة المعرفة عند بدء محادثة جديدة والسماح للذكاء الاصطناعي بالبحث في قاعدة المعرفة أثناء المحادثات',
+    experienceExtractionEnabled: 'ترسيخ الخبرة تلقائيًا',
+    experienceExtractionEnabledDescribe:
+      'بعد اكتمال المهمة بنجاح، يتم ترسيخ الخبرة القابلة لإعادة الاستخدام تلقائيًا في قاعدة المعرفة، وبالاقتران مع "استرجاع قاعدة المعرفة" تتحسن كفاءة الذكاء الاصطناعي واستقراره بشكل ملحوظ في المهام المتشابهة.',
     features: 'الميزات',
     enableCheckpoints: 'تمكين النقاط المرجعية',
     enableCheckpointsDescribe: 'يمكن تمكين الامتداد لحفظ النقاط المرجعية للمساحة العملية من خلال المهمة',
@@ -609,7 +613,8 @@ export default {
       fontSizeDecrease: 'تقليل الحجم الخط',
       toggleLayout: 'تبديل التخطيط (التبويب/الأجهزة)',
       toggleAgentsLeftSidebar: 'تبديل شريط الأجهزة الأيسر',
-      switchAiMode: 'تبديل وضع الذكاء الاصطناعي'
+      switchAiMode: 'تبديل وضع الذكاء الاصطناعي',
+      aiSuggestCommand: 'اقتراح أوامر الذكاء الاصطناعي'
     },
     hints: {
       sendOrToggleAi: 'الدردشة مع الذكاء الاصطناعي',

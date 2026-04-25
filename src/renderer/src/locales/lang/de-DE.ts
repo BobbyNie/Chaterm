@@ -98,6 +98,7 @@ export default {
     pleaseInputPrivateKey: 'Bitte geben Sie den privaten Schlüssel ein',
     localhost: 'Localhost',
     favoriteBar: 'Favoriten',
+    recentConnections: 'Letzte Verbindungen',
     executeCommandToAllWindows: 'Befehl an alle Fenster ausführen',
     broadcastTo: 'Broadcast an {count} Terminals',
     reloadAliasDataFailed: 'Alias-Daten konnten nicht neu geladen werden',
@@ -394,6 +395,9 @@ export default {
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['de-DE'],
     kbSearchEnabledDescribe:
       'Automatisch relevante Wissensdatenbank-Inhalte zu Beginn einer neuen Unterhaltung durchsuchen und der KI erlauben, die Wissensdatenbank waehrend der Unterhaltung zu durchsuchen',
+    experienceExtractionEnabled: 'Automatische Erfahrungsspeicherung',
+    experienceExtractionEnabledDescribe:
+      'Nach erfolgreichem Abschluss einer Aufgabe wiederverwendbare Erfahrungen automatisch in der Wissensdatenbank speichern und zusammen mit der Wissensdatenbanksuche Effizienz und Stabilität der KI bei ähnlichen Aufgaben deutlich verbessern.',
     features: 'Funktionen',
     enableCheckpoints: 'Checkpoints aktivieren',
     enableCheckpointsDescribe: 'Ermöglicht der Erweiterung, Checkpoints des Arbeitsbereichs während der Aufgabe zu speichern',
@@ -639,7 +643,8 @@ export default {
       fontSizeDecrease: 'Schriftgröße verringern',
       toggleLayout: 'Layout umschalten (Terminal/Agents)',
       toggleAgentsLeftSidebar: 'Agents-Linke Seitenleiste umschalten',
-      switchAiMode: 'AI-Modus umschalten'
+      switchAiMode: 'AI-Modus umschalten',
+      aiSuggestCommand: 'AI-Befehlsvorschlag'
     },
     hints: {
       sendOrToggleAi: 'Mit AI chatten',

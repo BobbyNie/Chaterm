@@ -106,6 +106,23 @@
             :ref="
               (el) => {
                 if (tab.id === currentChatId) {
+                  historyTopSentinel = el as HTMLElement
+                }
+              }
+            "
+            class="history-top-sentinel"
+            aria-hidden="true"
+          />
+          <div
+            v-if="getTabHasOlderHistory(tab.id)"
+            class="history-load-hint"
+          >
+            {{ $t('ai.historyLoadHint') }}
+          </div>
+          <div
+            :ref="
+              (el) => {
+                if (tab.id === currentChatId) {
                   chatResponse = el as HTMLElement
                 }
               }
@@ -230,6 +247,7 @@
                       :ask="message.ask"
                       :say="message.say"
                       :partial="message.partial"
+                      :message-content-parts="message.contentParts"
                       :executed-command="message.executedCommand"
                       :host-id="message.hostId"
                       :host-name="message.hostName"
@@ -246,6 +264,7 @@
                       :ask="message.ask"
                       :say="message.say"
                       :partial="message.partial"
+                      :message-content-parts="message.contentParts"
                       :executed-command="message.executedCommand"
                       :host-id="message.hostId"
                       :host-name="message.hostName"
@@ -840,6 +859,7 @@ const {
   messageFeedbacks,
   buttonsDisabled,
   getTabUserAssistantPairs,
+  getTabHasOlderHistory,
   getTabChatTypeValue,
   getTabLastChatMessageId,
   getTabResponseLoading
@@ -857,7 +877,15 @@ const { currentTodos, shouldShowTodoAfterMessage, getTodosForMessage, markLatest
 // Host state management
 const { updateHosts, updateHostsForCommandMode, getCurentTabAssetInfo } = useHostState()
 // Auto scroll
-const { chatContainer, chatResponse, scrollToBottom, initializeAutoScroll, handleTabSwitch, getMessagePairStyle } = useAutoScroll()
+const { chatContainer, chatResponse, historyTopSentinel, scrollToBottom, initializeAutoScroll, handleTabSwitch, getMessagePairStyle } = useAutoScroll(
+  {
+    onReachHistoryTop: (container) => {
+      const tabId = currentChatId.value
+      if (!tabId) return
+      void loadOlderHistoryForTab(tabId, { container })
+    }
+  }
+)
 
 // Message options management
 const { handleOptionSelect, getSelectedOption, handleCustomInputChange, getCustomInput, canSubmitOption, handleOptionSubmit } = useMessageOptions()
@@ -950,6 +978,7 @@ const interruptAndSendIfBusy = async (sendType: string) => {
 const {
   createNewEmptyTab,
   restoreHistoryTab,
+  loadOlderHistoryForTab,
   handleTabRemove,
   renameTab,
   editingTabId,

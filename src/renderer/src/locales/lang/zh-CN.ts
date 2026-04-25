@@ -98,6 +98,7 @@ export default {
     pleaseInputPrivateKey: '请输入私钥',
     localhost: '本地主机',
     favoriteBar: '收藏栏',
+    recentConnections: '最近连接',
     executeCommandToAllWindows: '执行命令到全部窗口',
     broadcastTo: '广播到 {count} 个终端',
     reloadAliasDataFailed: '重新加载别名数据失败',
@@ -384,6 +385,8 @@ export default {
     autoExecuteReadOnlyCommandsDescribe: '所有会话中的查询类命令（如 ls、cat、grep 等）将自动执行，无需人工确认',
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['zh-CN'],
     kbSearchEnabledDescribe: '新对话开始时自动搜索相关知识库内容，并允许 AI 在对话中搜索知识库',
+    experienceExtractionEnabled: '自动经验沉淀',
+    experienceExtractionEnabledDescribe: '任务成功完成后，自动沉淀可复用经验到知识库，结合“知识库检索”，显著提升 AI 处理相似任务的效率和稳定性。',
     features: '特征',
     enableCheckpoints: '开启检查点',
     enableCheckpointsDescribe: '允许在整个任务中保存工作区的检查点',
@@ -618,7 +621,8 @@ export default {
       fontSizeDecrease: '字体缩小',
       toggleLayout: '切换布局（Terminal/Agents）',
       toggleAgentsLeftSidebar: '切换Agents布局左侧边栏',
-      switchAiMode: '切换AI模式'
+      switchAiMode: '切换AI模式',
+      aiSuggestCommand: 'AI命令推荐'
     },
     hints: {
       sendOrToggleAi: '与AI对话',
@@ -862,6 +866,7 @@ export default {
     searchHistoryPH: '请输入',
     loading: '加载中...',
     loadMore: '加载',
+    historyLoadHint: '还有更早历史消息，向上滚动可继续加载',
     copyToClipboard: '已复制到剪贴板',
     retry: '重试',
     taskCompleted: '任务已完成',

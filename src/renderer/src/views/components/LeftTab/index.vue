@@ -137,6 +137,7 @@ import eventBus from '@/utils/eventBus'
 import { convertFileLocalResourceSrc } from '@/utils/convertFileLocalResourceSrc'
 
 const logger = createRendererLogger('leftTab')
+let removePluginMetadataListener: (() => void) | null = null
 const pluginViews = ref<any[]>([])
 
 /** file:// URLs cannot be used in img src in the renderer; map via custom protocol (see main process). */
@@ -231,7 +232,7 @@ onMounted(async () => {
   } catch (e) {
     logger.error('Get View Error', { error: e })
   }
-  api.onPluginMetadataChanged(async () => {
+  removePluginMetadataListener = api.onPluginMetadataChanged(async () => {
     await refreshPluginViews()
   })
 })
@@ -239,6 +240,10 @@ onMounted(async () => {
 onUnmounted(() => {
   eventBus.off('openAiRight')
   eventBus.off('openUserTab')
+  if (removePluginMetadataListener) {
+    removePluginMetadataListener()
+    removePluginMetadataListener = null
+  }
 })
 </script>
 <style lang="less">

@@ -98,6 +98,7 @@ export default {
     pleaseInputPrivateKey: 'Пожалуйста, введите приватный ключ',
     localhost: 'Локальный хост',
     favoriteBar: 'Избранное',
+    recentConnections: 'Недавние подключения',
     executeCommandToAllWindows: 'Выполнить команду во всех окнах',
     broadcastTo: 'Трансляция в {count} терминалов',
     reloadAliasDataFailed: 'Не удалось перезагрузить данные псевдонимов',
@@ -394,6 +395,9 @@ export default {
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['ru-RU'],
     kbSearchEnabledDescribe:
       'Автоматически искать релевантный контент в базе знаний при начале нового разговора и позволять ИИ искать в базе знаний во время разговоров',
+    experienceExtractionEnabled: 'Автоматическое накопление опыта',
+    experienceExtractionEnabledDescribe:
+      'После успешного завершения задачи автоматически сохранять переиспользуемый опыт в базе знаний и вместе с поиском по базе знаний значительно повышать эффективность и стабильность ИИ на похожих задачах.',
     features: 'Функции',
     enableCheckpoints: 'Включить точки сохранения',
     enableCheckpointsDescribe: 'Включает расширение для сохранения точек сохранения рабочего пространства в течение всего задания',
@@ -636,7 +640,8 @@ export default {
       fontSizeDecrease: 'Уменьшить размер шрифта',
       toggleLayout: 'Переключить макет (терминал/агенты)',
       toggleAgentsLeftSidebar: 'Переключить панель агентов слева',
-      switchAiMode: 'Переключить режим ИИ'
+      switchAiMode: 'Переключить режим ИИ',
+      aiSuggestCommand: 'ИИ-подсказка команд'
     },
     hints: {
       sendOrToggleAi: 'Чат с ИИ',

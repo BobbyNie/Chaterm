@@ -98,6 +98,7 @@ export default {
     pleaseInputPrivateKey: 'Por favor, introduza a chave privada',
     localhost: 'Localhost',
     favoriteBar: 'Favoritos',
+    recentConnections: 'Conex\u00f5es recentes',
     executeCommandToAllWindows: 'Executar comando em todas as janelas',
     broadcastTo: 'Transmitir para {count} terminais',
     reloadAliasDataFailed: 'Falha ao recarregar dados de alias',
@@ -393,6 +394,9 @@ export default {
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['pt-PT'],
     kbSearchEnabledDescribe:
       'Pesquisar automaticamente conteudo relevante da base de conhecimento ao iniciar uma nova conversa e permitir que a IA pesquise a base de conhecimento durante as conversas',
+    experienceExtractionEnabled: 'Captura automática de experiência',
+    experienceExtractionEnabledDescribe:
+      'Após uma tarefa ser concluída com sucesso, guardar automaticamente experiência reutilizável na base de conhecimento e, em conjunto com a pesquisa da base de conhecimento, melhorar significativamente a eficiência e a estabilidade da IA em tarefas semelhantes.',
     features: 'Funcionalidades',
     enableCheckpoints: 'Ativar Checkpoints',
     enableCheckpointsDescribe: 'Permite à extensão guardar checkpoints do espaço de trabalho durante a tarefa',
@@ -636,7 +640,8 @@ export default {
       fontSizeDecrease: 'Diminuir tamanho da fonte',
       toggleLayout: 'Alternar layout (terminal/agents)',
       toggleAgentsLeftSidebar: 'Alternar barra lateral esquerda dos agents',
-      switchAiMode: 'Alternar modo AI'
+      switchAiMode: 'Alternar modo AI',
+      aiSuggestCommand: 'Sugestão de comando AI'
     },
     hints: {
       sendOrToggleAi: 'Chat com IA',

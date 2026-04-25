@@ -49,6 +49,9 @@
       :active-suggestion="activeSuggestion"
       :selection-mode="suggestionSelectionMode"
       :ai-loading="aiSuggestLoading"
+      :ai-enabled="queryCommandFlag"
+      :has-ai-suggestion="!!aiSuggestion"
+      @trigger-ai="onAiTriggerHover"
     />
     <v-contextmenu ref="contextmenu">
       <Context
@@ -223,7 +226,6 @@ const aiSuggestRequestId = ref(0)
 const aiSuggestLoading = ref(false)
 const cachedOsInfo = ref<string | undefined>(undefined)
 const cachedOsInfoLoaded = ref(false)
-const AI_SUGGEST_DEBOUNCE_MS = 800
 const AI_SUGGEST_MIN_LENGTH = 3
 const props = defineProps({
   connectData: {
@@ -677,8 +679,8 @@ onMounted(async () => {
         pasteFlag.value = false
       }
       if (!selectFlag.value) {
+        aiSuggestion.value = null
         debouncedQueryCommand()
-        triggerAiSuggest()
       }
     }
     updateTimeout = null
@@ -913,6 +915,13 @@ onMounted(async () => {
     }
   })
 
+  eventBus.on('triggerAiSuggest', () => {
+    const activeTerm = inputManager.getActiveTerm()
+    if (activeTerm.id && connectionId.value && activeTerm.id === connectionId.value) {
+      triggerAiSuggestByShortcut()
+    }
+  })
+
   cleanupListeners.value.push(() => {
     eventBus.off('updateTheme', handleUpdateTheme)
     eventBus.off('executeTerminalCommand', handleExecuteCommand)
@@ -924,6 +933,7 @@ onMounted(async () => {
     eventBus.off('clearCurrentTerminal')
     eventBus.off('fontSizeIncrease')
     eventBus.off('fontSizeDecrease')
+    eventBus.off('triggerAiSuggest')
     window.removeEventListener('keydown', handleGlobalKeyDown)
     window.removeEventListener('message', handlePostMessage)
   })
@@ -1696,7 +1706,21 @@ const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
           disconnectedByNetwork.value = false
           waitingForNetworkRestore.value = false
           autoReconnectAttempts.value = 0
+          // Record connection for "Recent Connections" feature (skip auto-reconnects)
           if (!isAutoReconnect) {
+            try {
+              api.recordConnection({
+                assetUuid: props.connectData.uuid || '',
+                assetIp: props.connectData.ip || connConnectHost || '',
+                assetLabel: props.serverInfo?.title || props.serverInfo?.label || props.connectData.hostname || connHostname || '',
+                assetPort: connPort || 22,
+                assetUsername: connUsername || '',
+                assetType: connAssetType || 'person',
+                organizationId: props.serverInfo?.organizationId || 'personal'
+              })
+            } catch {
+              // Non-critical: do not block connection flow
+            }
             const welcomeName = email.split('@')[0] || userInfoStore().userInfo.name
             const welcome = '\x1b[38;2;22;119;255m' + t('ssh.welcomeMessage', { username: welcomeName }) + ' \x1b[m\r\n'
             terminal.value?.writeln('') // Add empty line separator
@@ -1952,6 +1976,20 @@ const connectLocalSSH = async () => {
 
     const result = await api.connectLocal(localConfig)
     if (result.success) {
+      // Record local connection for "Recent Connections" feature
+      try {
+        api.recordConnection({
+          assetUuid: props.connectData.uuid || props.serverInfo?.key || '',
+          assetIp: '127.0.0.1',
+          assetLabel: props.serverInfo?.title || props.connectData.hostname || 'localhost',
+          assetPort: 0,
+          assetUsername: '',
+          assetType: 'shell',
+          organizationId: 'personal'
+        })
+      } catch {
+        // Non-critical: do not block connection flow
+      }
       const welcomeName = email.split('@')[0] || userInfoStore().userInfo.name
       const welcome = '\x1b[38;2;22;119;255m' + t('ssh.welcomeMessage', { username: welcomeName }) + ' \x1b[m\r\n'
       terminal.value?.writeln('') // Add empty line separator
@@ -2607,8 +2645,8 @@ const setupTerminalInput = () => {
       selectFlag.value = false
     }
     if (!selectFlag.value) {
+      aiSuggestion.value = null
       debouncedQueryCommand()
-      triggerAiSuggest()
     }
   }
   termOndata = terminal.value?.onData(handleInput)
@@ -2716,10 +2754,19 @@ watch(
   { immediate: true }
 )
 
-// Reload OS info when connectionId changes (e.g., reconnect)
-watch(connectionId, () => {
+// Reload OS info and re-register inputManager when connectionId changes (e.g., reconnect)
+watch(connectionId, (newId, oldId) => {
   cachedOsInfoLoaded.value = false
   cachedOsInfo.value = undefined
+  if (oldId && newId && oldId !== newId) {
+    inputManager.unregisterInstances(oldId)
+    inputManager.registerInstances(
+      {
+        termOndata: handleExternalInput
+      },
+      newId
+    )
+  }
 })
 
 const checkFullScreenClear = (data: string) => {
@@ -3933,13 +3980,18 @@ const handleCommandOutput = (data: string, isInitialCommand: boolean) => {
           finalOutput = finalOutput.replace(/\n{2,}/g, '\n')
         }
 
+        const toolResult = {
+          output: finalOutput || 'Command executed successfully, no output returned',
+          toolName: 'execute_command'
+        }
+
         if (finalOutput) {
           const formattedOutput = `Terminal output:\n\`\`\`\n${finalOutput}\n\`\`\``
-          eventBus.emit('sendMessageToAi', { content: formattedOutput, tabId })
+          eventBus.emit('sendMessageToAi', { content: formattedOutput, tabId, toolResult })
         } else {
           const output = 'Command executed successfully, no output returned'
           const messageToSend = isInitialCommand ? `Terminal output:\n\`\`\`\n${output}\n\`\`\`` : output
-          eventBus.emit('sendMessageToAi', { content: messageToSend, tabId })
+          eventBus.emit('sendMessageToAi', { content: messageToSend, tabId, toolResult })
         }
       } catch (error) {
         logger.error('Error processing command echo output', { error: error })
@@ -4590,49 +4642,34 @@ const fetchAiSuggestion = async (command: string, requestId: number) => {
   }
 }
 
-// Debounced trigger for AI suggestion
-const triggerAiSuggest = () => {
-  // Cancel any pending timer
-  if (aiSuggestTimer.value) {
-    clearTimeout(aiSuggestTimer.value)
-    aiSuggestTimer.value = null
-  }
-  aiSuggestion.value = null
-
-  // Guard conditions
-  if (!queryCommandFlag.value) {
-    return
-  }
-  if (terminalMode.value === 'alternate') {
-    return
-  }
-  if (suggestionSelectionMode.value) {
-    return
-  }
-  // Skip if the terminal is not focused
-  if (terminal.value?.textarea && document.activeElement !== terminal.value.textarea) {
-    return
-  }
-
-  const isAtEndOfLine = terminalState.value.beforeCursor.length === terminalState.value.content.length
-  if (!isAtEndOfLine) {
-    return
-  }
+// Hover-triggered AI suggestion: called when user hovers the AI icon in suggestion panel
+const onAiTriggerHover = () => {
+  if (!queryCommandFlag.value) return
+  if (terminalMode.value === 'alternate') return
 
   const commandText = terminalState.value.beforeCursor.trim()
-  if (commandText.length < AI_SUGGEST_MIN_LENGTH) {
-    return
-  }
+  if (commandText.length < AI_SUGGEST_MIN_LENGTH) return
+
+  // Skip if already loading or already has a result
+  if (aiSuggestLoading.value || aiSuggestion.value) return
 
   const currentRequestId = ++aiSuggestRequestId.value
-  aiSuggestTimer.value = setTimeout(() => {
-    aiSuggestTimer.value = null
-    // Re-check selection mode: user may have entered navigation during debounce wait
-    if (suggestionSelectionMode.value) {
-      return
-    }
-    fetchAiSuggestion(commandText, currentRequestId)
-  }, AI_SUGGEST_DEBOUNCE_MS)
+  fetchAiSuggestion(commandText, currentRequestId)
+}
+
+// Shortcut-triggered AI suggestion: called via Ctrl+I / Cmd+I even when suggestion panel is not visible
+const triggerAiSuggestByShortcut = () => {
+  if (!queryCommandFlag.value) return
+  if (terminalMode.value === 'alternate') return
+
+  const commandText = terminalState.value.beforeCursor.trim()
+  if (commandText.length < AI_SUGGEST_MIN_LENGTH) return
+
+  // Skip if already loading or already has a result
+  if (aiSuggestLoading.value || aiSuggestion.value) return
+
+  const currentRequestId = ++aiSuggestRequestId.value
+  fetchAiSuggestion(commandText, currentRequestId)
 }
 
 const queryCommand = async (cmd = '') => {
