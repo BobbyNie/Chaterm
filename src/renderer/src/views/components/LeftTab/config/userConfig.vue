@@ -131,16 +131,6 @@ import { getDocsBaseUrl } from '@/utils/edition'
 
 const activeKey = ref('0')
 
-const parseDeployStatus = (raw: unknown): number => {
-  if (typeof raw !== 'string') return 0
-  const normalized = raw.trim()
-  if (!normalized) return 0
-  const parsed = Number(normalized)
-  if (!Number.isFinite(parsed)) return 0
-  return parsed
-}
-const deployStatus = parseDeployStatus(import.meta.env.RENDERER_DEPLOY_STATUS)
-
 const switchToTerminalTab = () => {
   activeKey.value = '1'
 }
