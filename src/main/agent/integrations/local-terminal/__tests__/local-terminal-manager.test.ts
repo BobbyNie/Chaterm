@@ -215,12 +215,8 @@ describe('LocalTerminalManager', () => {
       terminal.shell = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
       manager.runCommand(terminal, 'ls -al')
 
-      // PowerShell commands now include UTF-8 encoding prefix
-      expect(spawn).toHaveBeenCalledWith(
-        expect.any(String),
-        ['-Command', expect.stringContaining('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;')],
-        expect.any(Object)
-      )
+      // PowerShell commands are translated (ls -al -> Get-ChildItem -Force)
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-ChildItem')], expect.any(Object))
     })
 
     it('should execute command on Git Bash', () => {
@@ -547,7 +543,7 @@ describe('LocalTerminalManager', () => {
   })
 
   describe('Command translation for PowerShell', () => {
-    it('should translate ls -al to Get-ChildItem -Force with UTF-8 encoding', () => {
+    it('should translate ls -al to Get-ChildItem -Force', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -559,9 +555,6 @@ describe('LocalTerminalManager', () => {
       manager.runCommand(terminal, 'ls -al')
 
       expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-ChildItem -Force')], expect.any(Object))
-      // Verify UTF-8 encoding prefix is added
-      const callArgs = (spawn as any).mock.calls[0][1]
-      expect(callArgs[1]).toContain('[Console]::OutputEncoding')
     })
 
     it('should translate ls -la to Get-ChildItem -Force with UTF-8 encoding', () => {
@@ -634,7 +627,7 @@ describe('LocalTerminalManager', () => {
       expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('$PWD')], expect.any(Object))
     })
 
-    it('should not translate non-Unix commands but still add UTF-8 encoding', () => {
+    it('should not translate non-Unix commands', () => {
       const terminal: LocalTerminalInfo = {
         id: 1,
         sessionId: 'test',
@@ -645,10 +638,7 @@ describe('LocalTerminalManager', () => {
 
       manager.runCommand(terminal, 'Get-Process')
 
-      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', expect.stringContaining('Get-Process')], expect.any(Object))
-      // Verify UTF-8 encoding prefix is added even for native PowerShell commands
-      const callArgs = (spawn as any).mock.calls[0][1]
-      expect(callArgs[1]).toContain('[Console]::OutputEncoding')
+      expect(spawn).toHaveBeenCalledWith(expect.any(String), ['-Command', 'Get-Process'], expect.any(Object))
     })
   })
 
@@ -772,7 +762,7 @@ describe('LocalTerminalManager', () => {
     })
 
     describe('PowerShell UTF-8 output encoding', () => {
-      it('should add UTF-8 encoding prefix to PowerShell commands', () => {
+      it('should pass command directly to PowerShell without encoding prefix', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -786,11 +776,10 @@ describe('LocalTerminalManager', () => {
         const callArgs = (spawn as any).mock.calls[0]
         const commandArg = callArgs[1][1]
 
-        expect(commandArg).toContain('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8')
-        expect(commandArg).toContain('echo "test"')
+        expect(commandArg).toBe('echo "test"')
       })
 
-      it('should add UTF-8 encoding prefix to PowerShell Core commands', () => {
+      it('should pass command directly to PowerShell Core without encoding prefix', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -804,7 +793,7 @@ describe('LocalTerminalManager', () => {
         const callArgs = (spawn as any).mock.calls[0]
         const commandArg = callArgs[1][1]
 
-        expect(commandArg).toContain('[Console]::OutputEncoding = [System.Text.Encoding]::UTF8')
+        expect(commandArg).toBe('echo "test"')
       })
     })
 
@@ -835,7 +824,7 @@ describe('LocalTerminalManager', () => {
         ;(os.platform as any).mockReturnValue('win32')
       })
 
-      it('should convert simple && chain to PowerShell conditional syntax', () => {
+      it('should pass && chain directly to PowerShell without conversion', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -850,14 +839,13 @@ describe('LocalTerminalManager', () => {
         const args = callArgs[1]
         const command = args[1]
 
-        // Should contain conditional execution instead of &&
-        expect(command).not.toContain('&&')
-        expect(command).toContain('if ($?)')
+        // PowerShell supports && natively in modern versions, pass through as-is
+        expect(command).toContain('&&')
         expect(command).toContain('echo "first"')
         expect(command).toContain('echo "second"')
       })
 
-      it('should handle multiple && operators', () => {
+      it('should pass multiple && operators as-is', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -872,12 +860,12 @@ describe('LocalTerminalManager', () => {
         const args = callArgs[1]
         const command = args[1]
 
-        // Should have two conditional blocks
-        const conditionalCount = (command.match(/if \(\$\?\)/g) || []).length
-        expect(conditionalCount).toBe(2)
+        // All && operators should be preserved
+        const operatorCount = (command.match(/&&/g) || []).length
+        expect(operatorCount).toBe(2)
       })
 
-      it('should preserve && inside quoted strings', () => {
+      it('should preserve && inside and outside quoted strings', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -892,13 +880,12 @@ describe('LocalTerminalManager', () => {
         const args = callArgs[1]
         const command = args[1]
 
-        // The quoted && should be preserved
+        // Command should be passed through unchanged
         expect(command).toContain('"a && b"')
-        // But the command separator && should be converted
-        expect(command).toContain('if ($?)')
+        expect(command).toContain('&&')
       })
 
-      it('should handle && with single quoted strings', () => {
+      it('should preserve && inside single quoted strings', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -913,10 +900,9 @@ describe('LocalTerminalManager', () => {
         const args = callArgs[1]
         const command = args[1]
 
-        // The quoted && should be preserved
+        // Command should be passed through unchanged
         expect(command).toContain("'a && b'")
-        // But the command separator && should be converted
-        expect(command).toContain('if ($?)')
+        expect(command).toContain('&&')
       })
 
       it('should not modify commands without &&', () => {
@@ -939,7 +925,7 @@ describe('LocalTerminalManager', () => {
         expect(command).not.toContain('if ($?)')
       })
 
-      it('should add UTF-8 input encoding for PowerShell', () => {
+      it('should pass command directly without encoding manipulation', () => {
         const terminal: LocalTerminalInfo = {
           id: 1,
           sessionId: 'test',
@@ -954,10 +940,8 @@ describe('LocalTerminalManager', () => {
         const args = callArgs[1]
         const command = args[1]
 
-        // Should include both output and input encoding
-        expect(command).toContain('[Console]::OutputEncoding')
-        expect(command).toContain('[Console]::InputEncoding')
-        expect(command).toContain('$OutputEncoding')
+        // Command is passed directly without encoding prefix
+        expect(command).toBe('echo test')
       })
     })
 
