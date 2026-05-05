@@ -2,48 +2,72 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
-      “version”: “2026.05.05”,
-      “date”: “2026-05-05”,
-      “highlights”: {
-        “zh-CN”: [
-          “Sync upstream v0.10.2: AI chat search with multi-language support”,
-          “Sync upstream: File explorer show/hide hidden files”,
-          “Sync upstream: Official theme adaptation system”,
-          “Sync upstream: Markdown text selection copy in AI responses”,
-          “Sync upstream: Shell history exclusion for agent commands”,
-          “Sync upstream: Enhanced auto-scroll for inline approval buttons”,
-          “Sync upstream: Fix titleBar window controls, welcome message readability”
+      "version": "2026.05.05",
+      "date": "2026-05-05",
+      "highlights": {
+        "zh-CN": [
+          "Sync upstream v0.10.2: AI chat search with multi-language support",
+          "Sync upstream: File explorer show/hide hidden files",
+          "Sync upstream: Official theme adaptation system",
+          "Sync upstream: Markdown text selection copy in AI responses",
+          "Sync upstream: Shell history exclusion for agent commands",
+          "Sync upstream: Enhanced auto-scroll for inline approval buttons",
+          "Sync upstream: Fix titleBar window controls, welcome message readability"
         ],
-        “en-US”: [
-          “Synced upstream v0.10.2: AI chat search with multi-language support”,
-          “Synced upstream: File explorer show/hide hidden files”,
-          “Synced upstream: Official theme adaptation system”,
-          “Synced upstream: Markdown text selection copy in AI responses”,
-          “Synced upstream: Shell history exclusion for agent commands”,
-          “Synced upstream: Enhanced auto-scroll for inline approval buttons”,
-          “Synced upstream: Fix titleBar window controls, welcome message readability”
+        "en-US": [
+          "Synced upstream v0.10.2: AI chat search with multi-language support",
+          "Synced upstream: File explorer show/hide hidden files",
+          "Synced upstream: Official theme adaptation system",
+          "Synced upstream: Markdown text selection copy in AI responses",
+          "Synced upstream: Shell history exclusion for agent commands",
+          "Synced upstream: Enhanced auto-scroll for inline approval buttons",
+          "Synced upstream: Fix titleBar window controls, welcome message readability"
         ]
       }
     },
     {
-      “version”: “2026.04.14”,
-      “date”: “2026-04-14”,
-      “highlights”: {
-        “zh-CN”: [
-          “Sync upstream v0.10.1: LLM-powered context summarization for better AI conversation”,
-          “Sync upstream: web_fetch tool for fetching and reading web content”,
-          “Sync upstream: DOMPurify XSS protection for enhanced security”,
-          “Sync upstream: Telemetry restricted to global edition only”,
-          “Sync upstream: Remove Babel configuration, simplify build chain”,
-          “Sync upstream: Fix abnormal drag position in file transfer”
+      "version": "2026.04.14",
+      "date": "2026-04-14",
+      "highlights": {
+        "zh-CN": [
+          "Sync upstream v0.10.1: LLM-powered context summarization for better AI conversation",
+          "Sync upstream: web_fetch tool for fetching and reading web content",
+          "Sync upstream: DOMPurify XSS protection for enhanced security",
+          "Sync upstream: Telemetry restricted to global edition only",
+          "Sync upstream: Remove Babel configuration, simplify build chain",
+          "Sync upstream: Fix abnormal drag position in file transfer"
         ],
-        “en-US”: [
-          “Synced upstream v0.10.1: LLM-powered context summarization for better AI conversation”,
-          “Synced upstream: web_fetch tool for fetching and reading web content”,
-          “Synced upstream: DOMPurify XSS protection for enhanced security”,
-          “Synced upstream: Telemetry restricted to global edition only”,
-          “Synced upstream: Remove Babel configuration, simplify build chain”,
-          “Synced upstream: Fix abnormal drag position in file transfer”
+        "en-US": [
+          "Synced upstream v0.10.1: LLM-powered context summarization for better AI conversation",
+          "Synced upstream: web_fetch tool for fetching and reading web content",
+          "Synced upstream: DOMPurify XSS protection for enhanced security",
+          "Synced upstream: Telemetry restricted to global edition only",
+          "Synced upstream: Remove Babel configuration, simplify build chain",
+          "Synced upstream: Fix abnormal drag position in file transfer"
+        ]
+      }
+    },
+    {
+      "version": "0.10.2",
+      "date": "2026-04-28",
+      "highlights": {
+        "zh-CN": [
+          "内置模型：Chaterm CN 版新增内置 DeepSeek V4 模型支持",
+          "AI 与模型：优化模型插件与选择体验；支持插件输入模型；可在后台自动拉取并刷新默认模型信息；增强 OpenAI 兼容（含 Azure 端点识别）",
+          "对话体验：新增“历史消息加载中”提示，并支持按页加载更早消息；上下文截断提示更清楚，减少对话中断时的困惑; 支持对AI对话内容搜索",
+          "连接管理：新增最近连接记录；远程终端可识别并处理陈旧连接；分屏/克隆标签时会保留来源标记，排查上下文更直观",
+          "主机与资产检索：搜索支持主机名等更多维度；优化组织资产搜索与堡垒机父级标题展示，跨层级查找更快",
+          "知识库与内容处理：知识库搜索与结果展示更贴近语义；网页内容提取会过滤导航等非正文区域，粘贴到 AI 对话更干净可读",
+          "阅读与操作细节：Markdown 渲染区支持文本选择复制，查看长内容时摘录更方便"
+        ],
+        "en-US": [
+          "Built-in model: Chaterm CN version adds built-in DeepSeek V4 model support",
+          "AI and models: improved model plugin and model selection experience; support for plugin input models; background refresh of default model info; better OpenAI compatibility including Azure endpoint detection",
+          "Conversation flow: added a clear 'loading history' hint and paginated loading for older messages; clearer context truncation notices reduce confusion when long chats are trimmed; support searching for AI conversation content",
+          "Connection management: recent connections are now recorded; remote terminals can detect and handle stale connections; split/clone panels keep source tags so context is easier to track",
+          "Host and asset search: search now covers more fields such as hostnames; improved organization asset search and bastion parent-title display for faster cross-level lookup",
+          "Knowledge base and content handling: knowledge search and result rendering are more semantic; web content extraction removes navigation and other non-content blocks before sending to AI",
+          "Reading and interaction polish: text selection and copy are now supported in the markdown renderer, making long-output excerpts easier"
         ]
       }
     },
@@ -64,42 +88,6 @@
           "SSH: port tunnel forwarding; options to reuse connections and wake an existing tab mean fewer repeated logins",
           "Terminal: steadier display when scrolling long logs; after a disconnect, focus returns to the terminal; optional tab close button and middle-click to close the current tab",
           "Host list: clearer grouping for bastion hosts, faster loading, and easier-to-scan layout"
-        ]
-      }
-    },
-    {
-      "version": "2026.04.01",
-      "date": "2026-04-01",
-      "highlights": {
-        "zh-CN": [
-          "Sync upstream v0.10.0: WebGL GPU accelerated terminal rendering for improved performance",
-          "Sync upstream: Fix SSH terminal word-jump keys (Option/Ctrl+Arrow)",
-          "Sync upstream: Enhanced log sanitization for better security",
-          "Sync upstream: Knowledge base search feature (requires embedding model config)",
-          "Sync upstream: Fix connection testing for GPT5 and newer models",
-          "Sync upstream: Configurable close button on terminal tabs"
-        ],
-        "en-US": [
-          "Synced upstream v0.10.0: WebGL GPU-accelerated terminal rendering for improved performance",
-          "Synced upstream: Fix SSH terminal word-jump keys (Option/Ctrl+Arrow)",
-          "Synced upstream: Enhanced log sanitization for better security",
-          "Synced upstream: Knowledge base search feature (requires embedding model config)",
-          "Synced upstream: Fix connection testing for GPT5 and newer models",
-          "Synced upstream: Configurable close button on terminal tabs"
-        ]
-      }
-    },
-    {
-      "version": "2026.03.17",
-      "date": "2026-03-17",
-      "highlights": {
-        "zh-CN": [
-          "Fix: Windows startup ffmpeg.dll integrity check error",
-          "Updated runtime hash verification for Electron 41.0.2"
-        ],
-        "en-US": [
-          "Fix: Windows startup ffmpeg.dll integrity check error",
-          "Updated runtime hash verification for Electron 41.0.2"
         ]
       }
     },
@@ -126,50 +114,6 @@
           "Local connection: support AI dialog in the dialog opened by the shortcut key (Ctrl/Command + K) for local connection",
           "File management: fix the inability to reconnect after file management when disconnected",
           "Task management: update the updated_at timestamp when the task title changes"
-        ]
-      }
-    },
-    {
-      "version": "2026.03.16",
-      "date": "2026-03-16",
-      "highlights": {
-        "zh-CN": [
-          "Intranet Edition: No login required, use all features directly",
-          "Synced Upstream: Electron upgraded to 41.0.2 for better stability",
-          "Synced Upstream: Added Arabic localization support",
-          "Synced Upstream: Agent adds read_file tool for complex task stability",
-          "Synced Upstream: AI conversation supports / trigger for command popup",
-          "Synced Upstream: File management refactored, optimized folder upload/download/transfer",
-          "Synced Upstream: Fixed terminal display issues with light theme background switching"
-        ],
-        "en-US": [
-          "Intranet Edition: No login required, use all features directly",
-          "Synced Upstream: Electron upgraded to 41.0.2 for better stability",
-          "Synced Upstream: Added Arabic localization support",
-          "Synced Upstream: Agent adds read_file tool for complex task stability",
-          "Synced Upstream: AI conversation supports / trigger for command popup",
-          "Synced Upstream: File management refactored, optimized folder upload/download/transfer",
-          "Synced Upstream: Fixed terminal display issues with light theme background switching"
-        ]
-      }
-    },
-    {
-      "version": "2026.03.09",
-      "date": "2026-03-09",
-      "highlights": {
-        "zh-CN": [
-          "Initial release of Intranet Edition",
-          "Removed cloud dependencies: No login required, auto-use as guest",
-          "Removed user menu and billing features",
-          "Added GitHub Actions for automated builds",
-          "Supports Windows and macOS platforms"
-        ],
-        "en-US": [
-          "Initial release of Intranet Edition",
-          "Removed cloud dependencies: No login required, auto-use as guest",
-          "Removed user menu and billing features",
-          "Added GitHub Actions for automated builds",
-          "Supports Windows and macOS platforms"
         ]
       }
     },
