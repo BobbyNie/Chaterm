@@ -299,6 +299,23 @@ describe('runMarkerBasedCommand', () => {
     expect(lines).toContain('visible again')
   })
 
+  it('prepends a space to wrappedCommand so it is excluded from shell history', async () => {
+    const stream = createMockStream()
+    const config = createConfig(stream, { wrappedCommand: 'bash -l -c "echo hi"' })
+
+    const resultPromise = runMarkerBasedCommand(config)
+
+    // Verify the command written to the stream starts with a leading space
+    expect(stream.write).toHaveBeenCalledWith(expect.stringMatching(/^ /))
+    // Verify the original command is still present after the leading space
+    expect(stream.write).toHaveBeenCalledWith(' bash -l -c "echo hi"\r')
+
+    // Complete the command so the promise resolves
+    stream.emitData('===CHATERM_START===\n')
+    stream.emitData('===CHATERM_END===:0\n')
+    await resultPromise
+  })
+
   it('calls cleanupInteractionDetector on completion', async () => {
     const stream = createMockStream()
     const cleanupInteractionDetector = vi.fn()
@@ -353,5 +370,38 @@ describe('runMarkerBasedCommand', () => {
     await resultPromise
 
     expect(lines.some((l) => l.includes('[RENDERED]'))).toBe(true)
+  })
+
+  it('sends command with CRLF line ending via stream.write', async () => {
+    const stream = createMockStream()
+    const config = createConfig(stream, { wrappedCommand: 'echo test' })
+
+    const resultPromise = runMarkerBasedCommand(config)
+
+    // The command should be sent with \r (carriage return) for terminal compatibility
+    expect(stream.write).toHaveBeenCalledWith(' echo test\r')
+
+    stream.emitData('===CHATERM_START===\n')
+    stream.emitData('===CHATERM_END===:0\n')
+    await resultPromise
+  })
+
+  it('prepends space to complex wrapped commands with special characters', async () => {
+    const stream = createMockStream()
+    const complexCmd = `bash -l -c 'set +o history 2>/dev/null; echo "===START==="; ls -la; EXIT_CODE=$?; echo "===END===:$EXIT_CODE"; set -o history 2>/dev/null'`
+    const config = createConfig(stream, { wrappedCommand: complexCmd })
+
+    const resultPromise = runMarkerBasedCommand(config)
+
+    // The leading space ensures HIST_IGNORE_SPACE / HISTCONTROL=ignorespace skips this command
+    const writtenArg = (stream.write as ReturnType<typeof vi.fn>).mock.calls[0][0] as string
+    expect(writtenArg.startsWith(' ')).toBe(true)
+    expect(writtenArg.endsWith('\r')).toBe(true)
+    // The original command content should be preserved after the leading space
+    expect(writtenArg.slice(1, -1)).toBe(complexCmd)
+
+    stream.emitData('===CHATERM_START===\n')
+    stream.emitData('===CHATERM_END===:0\n')
+    await resultPromise
   })
 })

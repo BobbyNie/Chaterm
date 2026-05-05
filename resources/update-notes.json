@@ -2,24 +2,48 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
-      "version": "2026.04.14",
-      "date": "2026-04-14",
-      "highlights": {
-        "zh-CN": [
-          "Sync upstream v0.10.1: LLM-powered context summarization for better AI conversation",
-          "Sync upstream: web_fetch tool for fetching and reading web content",
-          "Sync upstream: DOMPurify XSS protection for enhanced security",
-          "Sync upstream: Telemetry restricted to global edition only",
-          "Sync upstream: Remove Babel configuration, simplify build chain",
-          "Sync upstream: Fix abnormal drag position in file transfer"
+      “version”: “2026.05.05”,
+      “date”: “2026-05-05”,
+      “highlights”: {
+        “zh-CN”: [
+          “Sync upstream v0.10.2: AI chat search with multi-language support”,
+          “Sync upstream: File explorer show/hide hidden files”,
+          “Sync upstream: Official theme adaptation system”,
+          “Sync upstream: Markdown text selection copy in AI responses”,
+          “Sync upstream: Shell history exclusion for agent commands”,
+          “Sync upstream: Enhanced auto-scroll for inline approval buttons”,
+          “Sync upstream: Fix titleBar window controls, welcome message readability”
         ],
-        "en-US": [
-          "Synced upstream v0.10.1: LLM-powered context summarization for better AI conversation",
-          "Synced upstream: web_fetch tool for fetching and reading web content",
-          "Synced upstream: DOMPurify XSS protection for enhanced security",
-          "Synced upstream: Telemetry restricted to global edition only",
-          "Synced upstream: Remove Babel configuration, simplify build chain",
-          "Synced upstream: Fix abnormal drag position in file transfer"
+        “en-US”: [
+          “Synced upstream v0.10.2: AI chat search with multi-language support”,
+          “Synced upstream: File explorer show/hide hidden files”,
+          “Synced upstream: Official theme adaptation system”,
+          “Synced upstream: Markdown text selection copy in AI responses”,
+          “Synced upstream: Shell history exclusion for agent commands”,
+          “Synced upstream: Enhanced auto-scroll for inline approval buttons”,
+          “Synced upstream: Fix titleBar window controls, welcome message readability”
+        ]
+      }
+    },
+    {
+      “version”: “2026.04.14”,
+      “date”: “2026-04-14”,
+      “highlights”: {
+        “zh-CN”: [
+          “Sync upstream v0.10.1: LLM-powered context summarization for better AI conversation”,
+          “Sync upstream: web_fetch tool for fetching and reading web content”,
+          “Sync upstream: DOMPurify XSS protection for enhanced security”,
+          “Sync upstream: Telemetry restricted to global edition only”,
+          “Sync upstream: Remove Babel configuration, simplify build chain”,
+          “Sync upstream: Fix abnormal drag position in file transfer”
+        ],
+        “en-US”: [
+          “Synced upstream v0.10.1: LLM-powered context summarization for better AI conversation”,
+          “Synced upstream: web_fetch tool for fetching and reading web content”,
+          “Synced upstream: DOMPurify XSS protection for enhanced security”,
+          “Synced upstream: Telemetry restricted to global edition only”,
+          “Synced upstream: Remove Babel configuration, simplify build chain”,
+          “Synced upstream: Fix abnormal drag position in file transfer”
         ]
       }
     },
