@@ -85,7 +85,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
   describe('Menu data structure', () => {
     it('should have correct menu count (9 items without user menu)', () => {
       // Intranet edition removed user menu, so we expect 9 items:
-      // Hosts, Assets, Files, Snippets, Knowledge, Extensions, AI, Kubernetes, Setting
+      // Hosts, Assets, Files, Snippets, Knowledge, Extensions, AI, Database, Setting
       expect(menuTabsData.length).toBe(9)
     })
 
@@ -108,7 +108,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
         'knowledgecenter', // Knowledge
         'extensions', // Extensions
         'ai', // AI
-        'kubernetes', // Kubernetes
+        'database', // Database
         'setting' // Setting
       ]
 
@@ -191,7 +191,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
 
   describe('Menu item order', () => {
     it('should maintain correct menu order', () => {
-      const expectedOrder = ['workspace', 'assets', 'files', 'snippets', 'knowledgecenter', 'extensions', 'ai', 'kubernetes', 'setting']
+      const expectedOrder = ['workspace', 'assets', 'files', 'snippets', 'knowledgecenter', 'extensions', 'ai', 'database', 'setting']
 
       const actualOrder = menuTabsData.map((item) => item.key)
       expect(actualOrder).toEqual(expectedOrder)
@@ -222,7 +222,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
     })
 
     it('should have all core functionality menus', () => {
-      const coreMenus = ['workspace', 'ai', 'files', 'assets', 'extensions', 'kubernetes']
+      const coreMenus = ['workspace', 'ai', 'files', 'assets', 'extensions', 'database']
 
       coreMenus.forEach((menuKey) => {
         const menuItem = menuTabsData.find((item) => item.key === menuKey)
@@ -251,7 +251,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
 
   describe('Menu item names', () => {
     it('should have correct menu item names', () => {
-      const expectedNames = ['Hosts', 'Assets', 'Files', 'Snippets', 'Knowledge', 'Plugins', 'AI', 'Kubernetes', 'Setting']
+      const expectedNames = ['Hosts', 'Assets', 'Files', 'Snippets', 'Knowledge', 'Plugins', 'AI', 'Database', 'Setting']
 
       const actualNames = menuTabsData.map((item) => item.name)
       expect(actualNames).toEqual(expectedNames)

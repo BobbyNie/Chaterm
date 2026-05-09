@@ -1,3 +1,15 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "dbd5aeb1",
+      "cron": "*/2 * * * *",
+      "prompt": "Check GitHub Actions workflow status for Chaterm project after sync push. Run: gh run list --repo BobbyNie/Chaterm --limit 5 --json databaseId,status,name,conclusion,createdAt,event,headBranch. If any workflows are still in_progress (pending/in_queue/in_progress), report their status. If workflows completed successfully, report summary. If any failed, report failure details. Stop monitoring when all workflows from commit 86310c6f are complete.",
+      "createdAt": 1778288300071,
+      "lastFiredAt": 1778289052075,
+      "recurring": true,
+      "createdBySessionId": "dba58ad8-2ac3-4d64-91b8-5313fc4a5936",
+      "createdByPid": 66894,
+      "createdByProcStart": "Sat May  9 00:30:08 2026"
+    }
+  ]
 }

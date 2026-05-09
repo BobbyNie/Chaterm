@@ -16,7 +16,7 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'password'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('user%40example.com')
+    expect(agent?.proxy.href).toContain('user%40example.com')
   })
 
   it('should encode password with colon', () => {
@@ -29,7 +29,7 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass:word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('pass%3Aword')
+    expect(agent?.proxy.href).toContain('pass%3Aword')
   })
 
   it('should encode password with slash', () => {
@@ -42,7 +42,7 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass/word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('pass%2Fword')
+    expect(agent?.proxy.href).toContain('pass%2Fword')
   })
 
   it('should encode credentials with hash symbol', () => {
@@ -55,8 +55,8 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass#word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('user%23name')
-    expect(agent?.proxy).toContain('pass%23word')
+    expect(agent?.proxy.href).toContain('user%23name')
+    expect(agent?.proxy.href).toContain('pass%23word')
   })
 
   it('should encode credentials with question mark', () => {
@@ -69,8 +69,8 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass?word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('user%3Fname')
-    expect(agent?.proxy).toContain('pass%3Fword')
+    expect(agent?.proxy.href).toContain('user%3Fname')
+    expect(agent?.proxy.href).toContain('pass%3Fword')
   })
 
   it('should encode credentials with ampersand', () => {
@@ -83,8 +83,8 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass&word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('user%26name')
-    expect(agent?.proxy).toContain('pass%26word')
+    expect(agent?.proxy.href).toContain('user%26name')
+    expect(agent?.proxy.href).toContain('pass%26word')
   })
 
   it('should encode credentials with equals sign', () => {
@@ -97,8 +97,8 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass=word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('user%3Dname')
-    expect(agent?.proxy).toContain('pass%3Dword')
+    expect(agent?.proxy.href).toContain('user%3Dname')
+    expect(agent?.proxy.href).toContain('pass%3Dword')
   })
 
   it('should handle Unicode characters in credentials', () => {
@@ -111,7 +111,7 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'password'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toContain('user%E5%90%8D%E5%89%8D')
+    expect(agent?.proxy.href).toContain('user%E5%90%8D%E5%89%8D')
   })
 
   it('should handle empty credentials gracefully', () => {
@@ -142,7 +142,8 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass:word'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toBe('http://proxy.example.com:8080')
+    expect(agent?.proxy.username).toBe('')
+    expect(agent?.proxy.password).toBe('')
   })
 
   it('should preserve URL structure when encoding credentials', () => {
@@ -155,6 +156,6 @@ describe('user-proxy - Proxy Credential URL Encoding', () => {
       password: 'pass'
     }
     const agent = createProxyAgent(config) as any
-    expect(agent?.proxy).toMatch(/^http:\/\/user:pass@proxy\.example\.com:8080$/)
+    expect(agent?.proxy.href).toBe('http://user:pass@proxy.example.com:8080/')
   })
 })
