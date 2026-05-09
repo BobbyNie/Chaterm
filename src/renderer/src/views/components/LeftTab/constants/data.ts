@@ -35,9 +35,9 @@ const menuTabsData = [
     icon: new URL('@/assets/menu/ai.svg', import.meta.url).href
   },
   {
-    name: 'Kubernetes',
-    key: 'kubernetes',
-    icon: new URL('@/assets/menu/kubernetes.svg', import.meta.url).href
+    name: 'Database',
+    key: 'database',
+    icon: new URL('@/assets/menu/database.svg', import.meta.url).href
   },
   {
     name: 'Setting',
