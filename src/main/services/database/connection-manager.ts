@@ -2,6 +2,7 @@
 //  This source code is licensed under the GPL-3.0
 
 import { randomUUID } from 'crypto'
+import { createLogger } from '../logging'
 import type { DbAssetRecord, DbAssetType } from '../../storage/db/chaterm/db-assets'
 import type {
   ConnectionTestResult,

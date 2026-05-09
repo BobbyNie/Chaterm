@@ -863,8 +863,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['state-changed'])
 
-const isSkippedLogin = ref(localStorage.getItem('login-skipped') === 'true')
-
 const {
   currentChatId,
   chatTabs,
@@ -1132,13 +1130,6 @@ watch(editingTabId, (newId) => {
     })
   }
 })
-
-watch(
-  () => localStorage.getItem('login-skipped'),
-  (newValue) => {
-    isSkippedLogin.value = newValue === 'true'
-  }
-)
 
 // When a streaming response finishes and the last message is awaiting user
 // approval (command / mcp_tool_call), the inline approval buttons mount in
