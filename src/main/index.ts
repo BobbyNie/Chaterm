@@ -35,6 +35,7 @@ import { registerLocalSSHHandlers } from './ssh/localSSHHandle'
 import { registerRemoteTerminalHandlers } from './ssh/agentHandle'
 import { registerK8sHandlers } from './k8s/k8sHandle'
 import { registerDbAssetHandlers } from './database/dbAssetHandle'
+import { registerDbAiHandlers } from './database/dbAiHandle'
 import { autoCompleteDatabaseService, ChatermDatabaseService, setCurrentUserId } from './storage/database'
 import { getGuestUserId } from './storage/db/connection'
 import { Controller } from './agent/core/controller'
@@ -328,8 +329,9 @@ app.whenReady().then(async () => {
   }
 
   protocol.handle('local-resource', (request) => {
-    let filePath = request.url.slice('local-resource://'.length)
-    filePath = decodeURIComponent(filePath)
+    // Strip query string before resolving to a file path (e.g. cache-busting ?t=xxx params)
+    const rawPath = request.url.slice('local-resource://'.length).split('?')[0]
+    let filePath = decodeURIComponent(rawPath)
 
     if (process.platform === 'win32' && /^\/[A-Za-z]:\//.test(filePath)) {
       filePath = filePath.slice(1)
@@ -426,6 +428,9 @@ app.whenReady().then(async () => {
 
   // Register Database asset handlers
   registerDbAssetHandlers()
+
+  // Register Database AI (single-turn, track A) handlers
+  registerDbAiHandlers()
 
   // Register interactive command IPC handlers
   setupInteractionIpcHandlers()
@@ -2616,9 +2621,9 @@ ipcMain.handle('set-task-favorite', async (_event, { taskId, favorite }) => {
   }
 })
 
-ipcMain.handle('get-task-list', async () => {
+ipcMain.handle('get-task-list', async (_event, data?: { workspace?: 'server' | 'database' }) => {
   try {
-    const list = await getTaskList()
+    const list = await getTaskList(data?.workspace)
     return { success: true, data: list }
   } catch (error) {
     return { success: false, error: { message: error instanceof Error ? error.message : 'Unknown error' } }

@@ -24,10 +24,8 @@ vi.mock('@/utils/domUtils', () => ({
   isFocusInAiTab: vi.fn(() => true),
   isElementInAiTab: vi.fn(() => true)
 }))
-vi.mock('@/services/userConfigStoreService', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/services/userConfigStoreService')>()
+vi.mock('@/services/userConfigStoreService', () => {
   return {
-    ...actual,
     UserConfigStoreService: vi.fn().mockImplementation(() => ({
       getConfig: vi.fn().mockResolvedValue({
         language: 'en-US',
