@@ -27,7 +27,7 @@ find "$SOURCE_DIR" -type f \( \
   -name "latest*.yml" \
 \) -exec cp {} "$OUTPUT_DIR"/ \;
 
-artifact_count="$(find "$OUTPUT_DIR" -maxdepth 1 -type f ! -name "*.sig" ! -name "*.pem" ! -name "*.bundle" ! -name "SHA256SUMS.txt" | wc -l | tr -d ' ')"
+artifact_count="$(find "$OUTPUT_DIR" -maxdepth 1 -type f ! -name "*.sig" ! -name "SHA256SUMS.txt" | wc -l | tr -d ' ')"
 
 if [ "$artifact_count" = "0" ]; then
   echo "Error: no release artifacts found in $SOURCE_DIR" >&2
@@ -41,17 +41,16 @@ for file in "$OUTPUT_DIR"/*; do
   [ -f "$file" ] || continue
 
   case "$file" in
-    *.sig|*.pem|*.bundle|*SHA256SUMS.txt)
+    *.sig|*SHA256SUMS.txt)
       continue
       ;;
   esac
 
   echo "Signing: $file"
 
+  # Keep one detached signature per artifact to reduce release asset noise.
   cosign sign-blob "$file" \
-    --bundle "$file.bundle" \
-    --output-signature "$file.sig" \
-    --output-certificate "$file.pem"
+    --output-signature "$file.sig"
 done
 
 echo "Generating SHA256SUMS.txt"
@@ -65,7 +64,7 @@ echo "Generating SLSA subject hashes"
 # The SLSA generic generator expects base64-encoded lines in the format:
 # <sha256>  <artifact-name>
 #
-# Exclude generated signature/certificate/bundle/checksum files from provenance subjects.
+# Exclude generated signature/checksum files from provenance subjects.
 subjects_file="$(mktemp)"
 
 (
@@ -74,7 +73,7 @@ subjects_file="$(mktemp)"
     [ -f "$artifact" ] || continue
 
     case "$artifact" in
-      *.sig|*.pem|*.bundle|SHA256SUMS.txt)
+      *.sig|SHA256SUMS.txt)
         continue
         ;;
     esac
@@ -84,15 +83,27 @@ subjects_file="$(mktemp)"
 ) > "$subjects_file"
 
 if [ ! -s "$subjects_file" ]; then
-  echo "Error: failed to generate SLSA subject hashes" >&2
+  echo "Error: failed to generate SLSA subject hashes (no eligible artifacts in $OUTPUT_DIR)" >&2
   exit 1
 fi
 
+subject_count="$(wc -l < "$subjects_file" | tr -d ' ')"
+echo "SLSA subjects ($subject_count):"
+cat "$subjects_file"
+
 base64_subjects="$(base64 < "$subjects_file" | tr -d '\n')"
+
+if [ -z "$base64_subjects" ]; then
+  echo "Error: base64-encoded SLSA subjects are empty" >&2
+  exit 1
+fi
 
 # Expose hashes to GitHub Actions step output.
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
-  echo "hashes=$base64_subjects" >> "$GITHUB_OUTPUT"
+  printf 'hashes=%s\n' "$base64_subjects" >> "$GITHUB_OUTPUT"
+  echo "Wrote hashes output ($subject_count subject(s), ${#base64_subjects} base64 chars)"
+else
+  echo "Warning: GITHUB_OUTPUT not set; skipping hashes export" >&2
 fi
 
 echo "Done. Release assets:"

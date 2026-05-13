@@ -2,26 +2,54 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
-      "version": "2026.05.09",
+      "version": "2026.05.13",
+      "date": "2026-05-13",
+      "highlights": {
+        "zh-CN": [
+          "Sync upstream v0.11.0: Database AI assistant with natural language to SQL, SQL explanation and optimization",
+          "Sync upstream: Database tooling expansion with schema inspection, query execution, index suggestions",
+          "Sync upstream: Database workspace UX upgrades with workspace-aware task filtering",
+          "Sync upstream: Terminal auto-scroll logic for improved user experience",
+          "Sync upstream: Multiple dependency updates including vue 3.5.34, @vueuse/core 14.3.0, dompurify 3.4.2"
+        ],
+        "en-US": [
+          "Synced upstream v0.11.0: Database AI assistant with natural language to SQL, SQL explanation and optimization",
+          "Synced upstream: Database tooling expansion with schema inspection, query execution, index suggestions",
+          "Synced upstream: Database workspace UX upgrades with workspace-aware task filtering",
+          "Synced upstream: Terminal auto-scroll logic for improved user experience",
+          "Synced upstream: Multiple dependency updates including vue 3.5.34, @vueuse/core 14.3.0, dompurify 3.4.2"
+        ]
+      }
+    },
+    {
+      "version": "0.11.0",
+      "date": "2026-05-11",
+      "highlights": {
+        "zh-CN": [
+          "数据库 AI 助手：支持自然语言转 SQL、SQL 解释与优化、SQL 转换与补全等能力，提升数据库问答与分析效率",
+          "数据库工具能力增强：新增 schema/表结构探查、查询执行、索引建议与数据采样，覆盖从诊断到优化的常见流程",
+          "数据库工作区体验升级：引入工作区感知任务与历史过滤、数据库查询结果可视化（含分页），并补齐多语言界面支持"
+        ],
+        "en-US": [
+          "Database AI assistant: added capabilities for natural language to SQL, SQL explanation and optimization, SQL conversion, and completion to improve database analysis workflows",
+          "Database tooling is expanded: added schema/table inspection, query execution, index suggestions, and row sampling to cover common diagnostics-to-optimization scenarios",
+          "Database workspace UX is upgraded: introduced workspace-aware task and history filtering, query result visualization with pagination, and multilingual UI coverage"
+        ]
+      }
+    },
+    {
+      "version": "0.10.4",
       "date": "2026-05-09",
       "highlights": {
         "zh-CN": [
-          "Sync upstream v0.10.3: Database workspace with PostgreSQL schema support",
-          "Sync upstream: Host export selection modal with filtering",
-          "Sync upstream: Connection context menus and edit connection support",
-          "Sync upstream: Enhanced DDL viewer and SQL result tab operations",
-          "Sync upstream: Fixed terminal command result forwarding reliability",
-          "Sync upstream: Fixed proxy credential URL encoding (security)",
-          "Sync upstream: Multiple dependency updates including axios and openai"
+          "自定义背景图：优化本地资源转换与加载流程，提升自定义背景显示稳定性",
+          "界面适配：优化文件区、工作区与扩展视图中的主机名文本响应式布局，长名称场景下显示更稳",
+          "发布安全与完整性：增强发布流程中的签名与校验产物处理，新增 SLSA 签名结果校验，降低发布链路异常风险"
         ],
         "en-US": [
-          "Synced upstream v0.10.3: Database workspace with PostgreSQL schema support",
-          "Synced upstream: Host export selection modal with filtering",
-          "Synced upstream: Connection context menus and edit connection support",
-          "Synced upstream: Enhanced DDL viewer and SQL result tab operations",
-          "Synced upstream: Fixed terminal command result forwarding reliability",
-          "Synced upstream: Fixed proxy credential URL encoding (security)",
-          "Synced upstream: Multiple dependency updates including axios and openai"
+          "Custom backgrounds: improved local resource conversion and loading flow for more reliable custom background rendering",
+          "UI adaptation: refined responsive hostname text layout in Files, Workspace, and Extension views for more stable display with long names",
+          "Release security and integrity: strengthened signature/checksum artifact handling in the release workflow and added SLSA signing result verification to reduce release pipeline risks"
         ]
       }
     },
@@ -80,7 +108,7 @@
         "zh-CN": [
           "内置模型：Chaterm CN 版新增内置 DeepSeek V4 模型支持",
           "AI 与模型：优化模型插件与选择体验；支持插件输入模型；可在后台自动拉取并刷新默认模型信息；增强 OpenAI 兼容（含 Azure 端点识别）",
-          "对话体验：新增“历史消息加载中”提示，并支持按页加载更早消息；上下文截断提示更清楚，减少对话中断时的困惑; 支持对AI对话内容搜索",
+          "对话体验：新增"历史消息加载中"提示，并支持按页加载更早消息；上下文截断提示更清楚，减少对话中断时的困惑; 支持对AI对话内容搜索",
           "连接管理：新增最近连接记录；远程终端可识别并处理陈旧连接；分屏/克隆标签时会保留来源标记，排查上下文更直观",
           "主机与资产检索：搜索支持主机名等更多维度；优化组织资产搜索与堡垒机父级标题展示，跨层级查找更快",
           "知识库与内容处理：知识库搜索与结果展示更贴近语义；网页内容提取会过滤导航等非正文区域，粘贴到 AI 对话更干净可读",
@@ -124,7 +152,7 @@
         "zh-CN": [
           "Kubernetes：新增 Kubernetes 插件，并适配 AI 对话的 Command/Agent 模式",
           "SSH：新增断线后的自动重连；实现唤醒连接处理与命令执行",
-          "AI：新增 GLM 兼容消息格式转换；修复 AI 设置中“Enable Thinking”按钮显示/可用性问题",
+          "AI：新增 GLM 兼容消息格式转换；修复 AI 设置中"Enable Thinking"按钮显示/可用性问题",
           "Skill：支持将 Skill 以 ZIP 形式导出进行分享",
           "终端与命令执行：平台改用登录 Shell 获取用户配置；优化 autoExecuteCode 自动切换终端的执行逻辑",
           "本地连接：支持本地连接的（Ctrl/Command + K）快捷键弹出的对话框进行AI对话",

@@ -142,6 +142,7 @@ import { stripAnsiBasic, stripAnsiExtended } from './utils/ansiUtils'
 import { isFocusInAiTab } from '@/utils/domUtils'
 import { keywordHighlightService } from '@/services/keywordHighlightService'
 import { useZmodem } from './utils/chatermZmodem'
+import { shouldAutoScrollAfterTerminalStateUpdate, shouldAutoScrollAfterTerminalWrite } from './utils/terminalScroll'
 
 // Pre-compiled regex constants for checkFullScreenClear / checkHeavyUiStyle (avoid re-creation per call)
 const CLEAR_SCREEN_PATTERNS = [
@@ -626,7 +627,7 @@ onMounted(async () => {
   const exitHighThroughputMode = () => {
     highThroughputMode = false
     // Do one final state update after bulk output settles
-    debouncedUpdateTerminalState('', false)
+    debouncedUpdateTerminalState('', false, shouldAutoScrollAfterTerminalWrite(terminal.value))
   }
 
   const scheduleHighThroughputExit = () => {
@@ -636,12 +637,12 @@ onMounted(async () => {
     htCooldownTimer = setTimeout(exitHighThroughputMode, HIGH_THROUGHPUT_COOLDOWN)
   }
 
-  const debouncedUpdateTerminalState = (data, currentIsUserCall) => {
+  const debouncedUpdateTerminalState = (data, currentIsUserCall, shouldAutoScrollAfterWrite = true) => {
     if (updateTimeout) {
       clearTimeout(updateTimeout)
     }
     if (currentIsUserCall || terminalMode.value === 'none') {
-      updateTerminalState(typeof data === 'string' && data.endsWith(startStr.value), enterPress.value, tagPress.value)
+      updateTerminalState(typeof data === 'string' && data.endsWith(startStr.value), enterPress.value, tagPress.value, shouldAutoScrollAfterWrite)
     }
     let highLightFlag: boolean = true
     if (enterPress.value || specialCode.value) {
@@ -689,8 +690,11 @@ onMounted(async () => {
 
     // High-throughput mode: bypass keyword highlight, render patching, and state updates
     if (highThroughputMode && !currentIsUserCall) {
+      const shouldAutoScroll = shouldAutoScrollAfterTerminalWrite(terminal.value)
       originalWrite(data, () => {
-        scheduleScrollToBottom()
+        if (shouldAutoScroll) {
+          scheduleScrollToBottom()
+        }
       })
       scheduleHighThroughputExit()
       return
@@ -704,12 +708,12 @@ onMounted(async () => {
       processedData = keywordHighlightService.applyHighlight(data)
     }
 
+    const shouldAutoScroll = !currentIsUserCall && shouldAutoScrollAfterTerminalWrite(terminal.value)
     originalWrite(processedData, () => {
       if (!currentIsUserCall) {
-        debouncedUpdateTerminalState(data, currentIsUserCall)
+        debouncedUpdateTerminalState(data, currentIsUserCall, shouldAutoScroll)
       }
-      // Ensure scroll to bottom after write completion
-      if (!currentIsUserCall) {
+      if (shouldAutoScroll) {
         scheduleScrollToBottom()
       }
     })
@@ -2156,7 +2160,7 @@ const getWrappedContentLastLineY = () => {
   return lastY
 }
 
-const updateTerminalState = (quickInit: boolean, enterPress, tagPress: boolean) => {
+const updateTerminalState = (quickInit: boolean, enterPress, tagPress: boolean, shouldAutoScrollAfterWrite = true) => {
   if (!terminal.value) return
 
   try {
@@ -2203,8 +2207,12 @@ const updateTerminalState = (quickInit: boolean, enterPress, tagPress: boolean) 
     updateTerminalStateObject(cursorX, cursorY, isCrossRow)
     sendTerminalStateToServer()
 
-    // Ensure terminal scrolls to bottom, keeping cursor in visible area
-    if (!userInputFlag.value) {
+    if (
+      shouldAutoScrollAfterTerminalStateUpdate({
+        isUserCall: userInputFlag.value,
+        shouldAutoScrollAfterWrite
+      })
+    ) {
       scheduleScrollToBottom()
     }
 
