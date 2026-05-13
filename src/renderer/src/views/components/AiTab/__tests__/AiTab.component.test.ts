@@ -25,31 +25,77 @@ vi.mock('@/utils/domUtils', () => ({
   isElementInAiTab: vi.fn(() => true)
 }))
 vi.mock('@/services/userConfigStoreService', () => {
+  const applyRemoteConfig = vi.fn()
+  const buildDefaultUserConfig = vi.fn(() => ({
+    id: 'test',
+    updatedAt: 0,
+    autoCompleteStatus: 0,
+    vimStatus: false,
+    quickVimStatus: 0,
+    commonVimStatus: 0,
+    aliasStatus: 0,
+    highlightStatus: 0,
+    pinchZoomStatus: 0,
+    fontSize: 14,
+    language: 'en-US',
+    defaultLayout: 'terminal',
+    background: { mode: 'none', image: '', opacity: 0.5, brightness: 0.45 }
+  }))
+  const getPlatformKey = vi.fn(() => 'mac' as const)
+  const buildDefaultShortcutConfig = vi.fn(() => ({}))
+  const isFlatShortcutConfig = vi.fn(() => false)
+  const isPlatformShortcuts = vi.fn(() => false)
+  const sanitizeForSync = vi.fn((config: any) => config)
+  const parseRemoteConfig = vi.fn((payload: any) => payload)
+  const resolveDataSyncPreference = vi.fn(() => 'disabled')
+  const dispatchSideEffects = vi.fn()
+  const getStoredUserConfigSnapshot = vi.fn(async () => null)
+  const migrateRemoteConfig = vi.fn(() => null)
+
   return {
     UserConfigStoreService: vi.fn().mockImplementation(() => ({
       getConfig: vi.fn().mockResolvedValue({
         language: 'en-US',
         defaultLayout: 'terminal',
-        background: {
-          mode: 'none',
-          image: '',
-          opacity: 0.5,
-          brightness: 0.45
-        }
+        background: { mode: 'none', image: '', opacity: 0.5, brightness: 0.45 }
       }),
       saveConfig: vi.fn().mockResolvedValue(undefined),
       initDB: vi.fn().mockResolvedValue(undefined)
     })),
+    SUPPORTED_USER_CONFIG_SCHEMA_VERSION: 1,
+    SUPPORTED_LANGUAGE_VALUES: ['zh-CN', 'zh-TW', 'en-US', 'de-DE', 'fr-FR', 'it-IT', 'pt-PT', 'ru-RU', 'ja-JP', 'ko-KR', 'ar-AR'] as const,
+    SYNC_WHITELIST: [
+      'language',
+      'defaultLayout',
+      'background',
+      'fontSize',
+      'fontFamily',
+      'scrollBack',
+      'cursorBlink',
+      'theme',
+      'shellType',
+      'sshConfigPath'
+    ],
+    SYNC_FIELD_VALIDATORS: {},
+    remoteConfigMigrations: {},
+    remoteApplyGuard: { run: vi.fn(async (fn: any) => await fn()) },
+    applyRemoteConfig,
+    buildDefaultUserConfig,
+    getPlatformKey,
+    buildDefaultShortcutConfig,
+    isFlatShortcutConfig,
+    isPlatformShortcuts,
+    sanitizeForSync,
+    parseRemoteConfig,
+    resolveDataSyncPreference,
+    dispatchSideEffects,
+    getStoredUserConfigSnapshot,
+    migrateRemoteConfig,
     userConfigStore: {
       getConfig: vi.fn().mockResolvedValue({
         language: 'en-US',
         defaultLayout: 'terminal',
-        background: {
-          mode: 'none',
-          image: '',
-          opacity: 0.5,
-          brightness: 0.45
-        }
+        background: { mode: 'none', image: '', opacity: 0.5, brightness: 0.45 }
       }),
       saveConfig: vi.fn().mockResolvedValue(undefined),
       initDB: vi.fn().mockResolvedValue(undefined)

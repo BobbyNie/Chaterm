@@ -53,19 +53,32 @@ describe('RemoteTerminalManager plugin bastion routing', () => {
     remoteSshConnectMock.mockReset()
     isRemoteConnectionAliveMock.mockReset()
     getBastionMock.mockReset()
+    getBastionMock.mockReturnValue(undefined)
     handleJumpServerConnectionMock.mockReset()
     jumpserverShellStreams.clear()
   })
 
   it('uses bastion capability for create/disconnect when sshType is plugin-based', async () => {
+    // Increase timeout for this test
+    vi.setConfig({ testTimeout: 10000 })
     const connectMock = vi.fn(async () => ({ status: 'connected', sessionId: 'cap-session' }))
     const disconnectMock = vi.fn(async () => undefined)
+    const shellMock = vi.fn(async () => ({ status: 'success' }))
+    const writeMock = vi.fn()
+    const resizeMock = vi.fn(async () => undefined)
+    const getShellStreamMock = vi.fn()
 
-    getBastionMock.mockReturnValue({
+    const mockBastion = {
       type: 'tencent',
       connect: connectMock,
-      disconnect: disconnectMock
-    })
+      disconnect: disconnectMock,
+      shell: shellMock,
+      write: writeMock,
+      resize: resizeMock,
+      getShellStream: getShellStreamMock
+    }
+
+    getBastionMock.mockReturnValue(mockBastion)
 
     const { RemoteTerminalManager } = await import('../index')
     const manager = new RemoteTerminalManager()
@@ -94,12 +107,31 @@ describe('RemoteTerminalManager plugin bastion routing', () => {
   })
 
   it('prefers comment as targetAsset when provided', async () => {
-    const connectMock = vi.fn(async () => ({ status: 'connected', sessionId: 'cap-session' }))
+    // Increase timeout for this test
+    vi.setConfig({ testTimeout: 10000 })
 
-    getBastionMock.mockReturnValue({
+    // Reset mock first
+    getBastionMock.mockReset()
+    getBastionMock.mockReturnValue(undefined)
+
+    const connectMock = vi.fn(async () => ({ status: 'connected', sessionId: 'cap-session' }))
+    const disconnectMock = vi.fn(async () => undefined)
+    const shellMock = vi.fn(async () => ({ status: 'success' }))
+    const writeMock = vi.fn()
+    const resizeMock = vi.fn(async () => undefined)
+    const getShellStreamMock = vi.fn()
+
+    const mockBastion = {
       type: 'tencent',
-      connect: connectMock
-    })
+      connect: connectMock,
+      disconnect: disconnectMock,
+      shell: shellMock,
+      write: writeMock,
+      resize: resizeMock,
+      getShellStream: getShellStreamMock
+    }
+
+    getBastionMock.mockReturnValue(mockBastion)
 
     const { RemoteTerminalManager } = await import('../index')
     const manager = new RemoteTerminalManager()

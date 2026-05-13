@@ -12,9 +12,12 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
+import path from 'path'
+import fs from 'fs'
 
 describe('CI/CD Build Verification - Intranet Edition', () => {
   const workflowPath = resolve('.github/workflows/build.yml')
+  const projectRoot = resolve(process.cwd())
   let workflowContent: string
 
   beforeAll(() => {
@@ -190,8 +193,7 @@ describe('CI/CD Build Verification - Intranet Edition', () => {
 
     it('should add release notes for date version', () => {
       expect(workflowContent).toContain('Add release notes for date version')
-      expect(workflowContent).toMatch(/notes\.versions\.unshift\(/)
-      expect(workflowContent).toMatch(/version:\s*pkg\.version/)
+      expect(workflowContent).toContain('node scripts/fix-update-notes.js')
     })
   })
 
@@ -259,14 +261,22 @@ describe('CI/CD Build Verification - Intranet Edition', () => {
 
   describe('Release notes configuration', () => {
     it('should add release notes for automated builds', () => {
-      expect(workflowContent).toContain('highlights:')
-      expect(workflowContent).toContain('CI Build - CI 自动构建版本')
-      expect(workflowContent).toContain('CI Build - Automated CI build')
+      expect(workflowContent).toContain('Add release notes for date version')
+      expect(workflowContent).toContain('node scripts/fix-update-notes.js')
     })
 
     it('should update update-notes.json file', () => {
-      expect(workflowContent).toMatch(/notesPath = 'resources\/update-notes\.json'/)
-      expect(workflowContent).toMatch(/fs\.writeFileSync\(notesPath/)
+      // Verify the external script exists and contains the necessary logic
+      const scriptPath = path.join(projectRoot, 'scripts/fix-update-notes.js')
+      expect(fs.existsSync(scriptPath)).toBe(true)
+
+      const scriptContent = fs.readFileSync(scriptPath, 'utf-8')
+      expect(scriptContent).toContain("notesPath = 'resources/update-notes.json'")
+      expect(scriptContent).toContain('notes.versions.unshift')
+      expect(scriptContent).toContain('highlights:')
+      expect(scriptContent).toContain('CI Build - CI 自动构建版本')
+      expect(scriptContent).toContain('CI Build - Automated CI build')
+      expect(scriptContent).toMatch(/fs\.writeFileSync\(notesPath/)
     })
   })
 
