@@ -48,8 +48,10 @@ jobs:
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
           const notesPath = 'resources/update-notes.json';
           let notesContent = fs.readFileSync(notesPath, 'utf-8');
-          // Replace Chinese quotation marks with escaped English ones for JSON parsing
-          notesContent = notesContent.replace(/“/g, '\\\\\"').replace(/”/g, '\\\\\"');
+          // Replace Chinese quotation marks (U+201C and U+201D) with escaped English quotes
+          const leftQuote = String.fromCharCode(0x201C);
+          const rightQuote = String.fromCharCode(0x201D);
+          notesContent = notesContent.split(leftQuote).join('\\\\\"').split(rightQuote).join('\\\\\"');
           const notes = JSON.parse(notesContent);
           const today = new Date().toISOString().split('T')[0];
           notes.versions.unshift({
@@ -128,8 +130,10 @@ jobs:
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
           const notesPath = 'resources/update-notes.json';
           let notesContent = fs.readFileSync(notesPath, 'utf-8');
-          // Replace Chinese quotation marks with escaped English ones for JSON parsing
-          notesContent = notesContent.replace(/“/g, '\\\\\"').replace(/”/g, '\\\\\"');
+          // Replace Chinese quotation marks (U+201C and U+201D) with escaped English quotes
+          const leftQuote = String.fromCharCode(0x201C);
+          const rightQuote = String.fromCharCode(0x201D);
+          notesContent = notesContent.split(leftQuote).join('\\\\\"').split(rightQuote).join('\\\\\"');
           const notes = JSON.parse(notesContent);
           const today = new Date().toISOString().split('T')[0];
           notes.versions.unshift({
