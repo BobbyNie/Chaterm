@@ -53,32 +53,19 @@ describe('RemoteTerminalManager plugin bastion routing', () => {
     remoteSshConnectMock.mockReset()
     isRemoteConnectionAliveMock.mockReset()
     getBastionMock.mockReset()
-    getBastionMock.mockReturnValue(undefined)
     handleJumpServerConnectionMock.mockReset()
     jumpserverShellStreams.clear()
   })
 
   it('uses bastion capability for create/disconnect when sshType is plugin-based', async () => {
-    // Increase timeout for this test
-    vi.setConfig({ testTimeout: 10000 })
     const connectMock = vi.fn(async () => ({ status: 'connected', sessionId: 'cap-session' }))
     const disconnectMock = vi.fn(async () => undefined)
-    const shellMock = vi.fn(async () => ({ status: 'success' }))
-    const writeMock = vi.fn()
-    const resizeMock = vi.fn(async () => undefined)
-    const getShellStreamMock = vi.fn()
 
-    const mockBastion = {
+    getBastionMock.mockReturnValue({
       type: 'tencent',
       connect: connectMock,
-      disconnect: disconnectMock,
-      shell: shellMock,
-      write: writeMock,
-      resize: resizeMock,
-      getShellStream: getShellStreamMock
-    }
-
-    getBastionMock.mockReturnValue(mockBastion)
+      disconnect: disconnectMock
+    })
 
     const { RemoteTerminalManager } = await import('../index')
     const manager = new RemoteTerminalManager()
@@ -107,31 +94,12 @@ describe('RemoteTerminalManager plugin bastion routing', () => {
   })
 
   it('prefers comment as targetAsset when provided', async () => {
-    // Increase timeout for this test
-    vi.setConfig({ testTimeout: 10000 })
-
-    // Reset mock first
-    getBastionMock.mockReset()
-    getBastionMock.mockReturnValue(undefined)
-
     const connectMock = vi.fn(async () => ({ status: 'connected', sessionId: 'cap-session' }))
-    const disconnectMock = vi.fn(async () => undefined)
-    const shellMock = vi.fn(async () => ({ status: 'success' }))
-    const writeMock = vi.fn()
-    const resizeMock = vi.fn(async () => undefined)
-    const getShellStreamMock = vi.fn()
 
-    const mockBastion = {
+    getBastionMock.mockReturnValue({
       type: 'tencent',
-      connect: connectMock,
-      disconnect: disconnectMock,
-      shell: shellMock,
-      write: writeMock,
-      resize: resizeMock,
-      getShellStream: getShellStreamMock
-    }
-
-    getBastionMock.mockReturnValue(mockBastion)
+      connect: connectMock
+    })
 
     const { RemoteTerminalManager } = await import('../index')
     const manager = new RemoteTerminalManager()

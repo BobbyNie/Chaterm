@@ -1191,6 +1191,8 @@ export default {
     uploadCancel: 'Upload annullato',
     downloadSkipped: 'download saltato',
     taskList: 'Lista trasmissioni',
+    collapseTransferList: 'Comprimi lista trasmissioni',
+    expandTransferList: 'Espandi lista trasmissioni',
     upload: 'Upload',
     copyFileSuccess: 'File copiato con successo',
     copyFileFailed: 'File copia fallito',

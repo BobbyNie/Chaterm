@@ -50,22 +50,10 @@ describe('RemoteTerminalProcess bastion execution', () => {
   })
 
   it('rejects when bastion capability lacks getShellStream', async () => {
-    // Increase timeout for this test
-    vi.setConfig({ testTimeout: 10000 })
-
-    // Reset mock first
-    getBastionMock.mockReset()
-    getBastionMock.mockReturnValue(undefined)
-
-    const mockBastion = {
+    getBastionMock.mockReturnValue({
       type: 'qizhi',
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      write: vi.fn(),
-      shell: vi.fn(),
-      resize: vi.fn()
-    }
-    getBastionMock.mockReturnValue(mockBastion)
+      write: vi.fn()
+    })
 
     const { RemoteTerminalProcess } = await import('../index')
     const process = new RemoteTerminalProcess()

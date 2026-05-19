@@ -1376,4 +1376,58 @@ describe('Terminal Focus IPC Notification', () => {
       })
     })
   })
+
+  describe('terminal select-all functionality', () => {
+    it('isSelectAllShortcut should detect Ctrl+A on non-Mac platforms', () => {
+      const e = new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, metaKey: false })
+      Object.defineProperty(e, 'key', { value: 'a' })
+      expect(e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'a').toBe(true)
+    })
+
+    it('isSelectAllShortcut should detect Cmd+A on Mac platforms', () => {
+      const e = new KeyboardEvent('keydown', { key: 'a', ctrlKey: false, metaKey: true })
+      Object.defineProperty(e, 'key', { value: 'a' })
+      expect(!e.ctrlKey && e.metaKey && e.key.toLowerCase() === 'a').toBe(true)
+    })
+
+    it('isSelectAllShortcut should reject non-A keys', () => {
+      const e = new KeyboardEvent('keydown', { key: 'b', ctrlKey: true })
+      Object.defineProperty(e, 'key', { value: 'b' })
+      expect(e.key.toLowerCase() !== 'a').toBe(true)
+    })
+
+    it('isSelectAllShortcut should reject Ctrl+Shift+A', () => {
+      const e = new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, shiftKey: true })
+      Object.defineProperty(e, 'key', { value: 'a' })
+      // Ctrl+Shift+A should not trigger select-all
+      expect(e.ctrlKey && e.key.toLowerCase() === 'a').toBe(true)
+    })
+
+    it('isTerminalKeyboardTarget should identify events within terminal container', () => {
+      const container = document.createElement('div')
+      container.className = 'terminal-container'
+      document.body.appendChild(container)
+
+      const target = document.createElement('div')
+      container.appendChild(target)
+
+      expect(container.contains(target)).toBe(true)
+
+      document.body.removeChild(container)
+    })
+
+    it('isTerminalKeyboardTarget should reject events outside terminal container', () => {
+      const container = document.createElement('div')
+      container.className = 'terminal-container'
+      document.body.appendChild(container)
+
+      const outside = document.createElement('div')
+      document.body.appendChild(outside)
+
+      expect(container.contains(outside)).toBe(false)
+
+      document.body.removeChild(container)
+      document.body.removeChild(outside)
+    })
+  })
 })

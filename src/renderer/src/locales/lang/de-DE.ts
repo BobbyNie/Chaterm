@@ -1193,6 +1193,8 @@ export default {
     uploadCancel: 'Upload abgebrochen',
     downloadSkipped: 'download übersprungen',
     taskList: 'Übertragungsliste',
+    collapseTransferList: 'Übertragungsliste reduzieren',
+    expandTransferList: 'Übertragungsliste erweitern',
     upload: 'Upload',
     copyFileSuccess: 'Datei erfolgreich kopiert',
     copyFileFailed: 'Datei kopieren fehlgeschlagen',

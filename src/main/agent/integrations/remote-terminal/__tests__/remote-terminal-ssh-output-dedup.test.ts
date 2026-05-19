@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createRequire, Module } from 'module'
 
 const require = createRequire(import.meta.url)
@@ -45,15 +45,27 @@ vi.mock('../jumpserverHandle', () => ({
 
 describe('RemoteTerminalProcess SSH output', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     remoteSshExecStreamMock.mockReset()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('does not duplicate delayed prompt line when newline arrives', async () => {
     remoteSshExecStreamMock.mockImplementation(async (_sessionId: string, _command: string, onData: (chunk: string) => void) => {
-      // Simulate output without newline first, then with newline
       onData('Password: ')
-      onData('\nYou entered: adfaf\n')
-      return { success: true }
+
+      setTimeout(() => {
+        onData('\nYou entered: adfaf\n')
+      }, 200)
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: true })
+        }, 200)
+      })
     })
 
     const { RemoteTerminalProcess } = await import('../index')
@@ -62,14 +74,11 @@ describe('RemoteTerminalProcess SSH output', () => {
 
     process.on('line', (line) => lines.push(line))
 
-    await process.run('session-1', 'bash -c "printf \'Password: \'"')
+    const runPromise = process.run('session-1', 'bash -c "printf \'Password: \'"')
 
-    // The test verifies that the delayed prompt line is not duplicated
-    // when a newline arrives later
-    expect(lines).toContain('Password: ')
-    expect(lines).toContain('You entered: adfaf')
-    // Ensure we don't have duplicate 'Password: ' entries
-    const passwordCount = lines.filter((l) => l.includes('Password')).length
-    expect(passwordCount).toBe(1)
+    await vi.advanceTimersByTimeAsync(200)
+    await runPromise
+
+    expect(lines).toEqual(['Password: ', 'You entered: adfaf'])
   })
 })

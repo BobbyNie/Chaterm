@@ -1197,6 +1197,8 @@ export default {
     uploadCancel: 'Téléchargement annulé',
     downloadSkipped: 'Téléchargement ignoré',
     taskList: 'Liste de transmission',
+    collapseTransferList: 'Réduire la liste de transmission',
+    expandTransferList: 'Développer la liste de transmission',
     upload: 'Télécharger',
     copyFileSuccess: 'Fichier copié avec succès',
     copyFileFailed: 'Copie échouée',
