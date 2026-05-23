@@ -1,4 +1,4 @@
-import { getUserInfo, setUserInfo, removeToken } from '@/utils/permission'
+import { getUserInfo, setUserInfo } from '@/utils/permission'
 import { dataSyncService } from '@/services/dataSyncService'
 
 const logger = createRendererLogger('router')

@@ -19,7 +19,8 @@ describe('connectAssetInfoLogic with fallback', () => {
         password TEXT,
         key_chain_id INTEGER,
         need_proxy INTEGER,
-        proxy_name TEXT
+        proxy_name TEXT,
+        jump_host_uuid TEXT
       );
 
       CREATE TABLE t_organization_assets (

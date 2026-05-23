@@ -46,7 +46,7 @@ vi.mock('@views/components/LeftTab/config/assetConfig.vue', () => ({
   }
 }))
 
-vi.mock('@views/components/LeftTab/config/KeyManagement.vue', () => ({
+vi.mock('@views/components/LeftTab/config/keyManagement.vue', () => ({
   default: {
     name: 'KeyManagement',
     template: '<div class="key-management-mock">Key Management</div>'
