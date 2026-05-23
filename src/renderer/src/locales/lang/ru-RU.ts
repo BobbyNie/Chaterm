@@ -26,6 +26,7 @@ export default {
     userConfig: 'Настройки',
     alias: 'Настройка псевдонимов',
     assetConfig: 'Управление хостами',
+    onboardingGuide: 'Руководство по началу работы',
     search: 'Поиск',
     connect: 'Подключиться',
     edit: 'Редактировать',
@@ -129,7 +130,10 @@ export default {
     daysAgo: ' дней назад',
     run: 'Запустить',
     jumpserverSupportPlugin: 'Поддержка Jumpserver',
-    noSearchResults: 'Нет результатов поиска'
+    noSearchResults: 'Нет результатов поиска',
+    previous: 'Предыдущая',
+    next: 'Следующая',
+    database: 'База данных'
   },
   term: {
     welcome: 'Добро пожаловать в Chaterm',
@@ -263,7 +267,10 @@ export default {
     watermarkDescribe: 'Показать водяной знак на терминале',
     watermarkOpen: 'Открыть',
     watermarkClose: 'Закрыть',
+    onboardingGuide: 'Руководство по началу работы',
+    openOnboardingGuide: 'Открыть руководство по началу работы',
     language: 'Язык',
+    languageSystem: 'Следовать системе',
     theme: 'Тема',
     themeDark: 'Тёмный',
     themeLight: 'Светлый',
@@ -569,7 +576,9 @@ export default {
     unableToGetFilePath: 'Не удалось получить путь к файлу',
     formatError: 'Формат ошибки',
     onDropTip: 'Пожалуйста, перетащите пакет плагина с расширением .chaterm',
-    installing: 'Установка плагина...',
+    installing: 'Установка',
+    verifying: 'Загрузка.',
+    downloading: 'Проверка.',
     waitForInstall: 'Извлечение и настройка окружения плагина. Пожалуйста, подождите...',
     installSuccess: 'Плагин успешно установлен',
     initSuccess: 'Плагин успешно установлен и загружен',
@@ -596,6 +605,8 @@ export default {
     uninstalling: 'Удаление',
     uninstall: 'Удалить',
     uninstallError: 'Произошла ошибка при удалении',
+    uninstallDirectoryBusy:
+      'Директория плагинов занята, невозможно выполнить размонтирование. Пожалуйста, подождите или перезапустите Chaterm, а затем попробуйте снова.\n',
     install: 'Установить',
     subscribe: 'Подписаться',
     update: 'Обновить',
@@ -670,6 +681,178 @@ export default {
       toggleLayout: 'Переключить макет (терминал/агенты)'
     }
   },
+  onboarding: {
+    guide: {
+      title: 'Познакомьтесь с Chaterm через один модуль',
+      description:
+        'Выберите модуль, чтобы автоматически открыть соответствующую страницу и подсветить ключевые области. Во время тура неподсвеченные области временно недоступны, а текущая подсвеченная область остается кликабельной.',
+      progress: 'Выполнено {completed}/{total}'
+    },
+    modules: {
+      interfaceGuide: {
+        title: 'Обзор интерфейса',
+        description: 'Познакомьтесь с левыми модулями, функциональной панелью, вкладками рабочей области, верхним управлением макетом и входом AI.'
+      },
+      systemSettings: {
+        title: 'Системные настройки',
+        description: 'Изучите общие настройки, тему и язык, макет по умолчанию, шрифт терминала, прокси и SSH Agent.'
+      },
+      addAndConnectHost: {
+        title: 'Добавить и подключить хост',
+        description: 'Создайте хост и запустите реальное подключение щелчком или двойным щелчком по карточке актива.'
+      },
+      aiChat: {
+        title: 'Использовать чат AI',
+        description: 'Откройте правую панель AI, выберите Agent, модель и локальный хост, затем отправьте реальный AI-запрос.'
+      }
+    },
+    spotlight: {
+      previous: 'Назад',
+      next: 'Далее',
+      finish: 'Готово',
+      progress: '{current}/{total}',
+      targetMissing: 'Текущая цель временно не видна. Сначала завершите предыдущий шаг или нажмите Далее.'
+    },
+    tours: {
+      interfaceGuide: {
+        moduleSwitcher: {
+          title: 'Левая панель модулей',
+          description: 'Здесь переключаются рабочая область, активы, файлы, база знаний и другие основные модули.'
+        },
+        functionPanel: {
+          title: 'Левая функциональная панель',
+          description: 'После выбора модуля здесь появляются соответствующие списки, поиск и элементы управления.'
+        },
+        workspace: {
+          title: 'Вкладки основной рабочей области',
+          description: 'Терминал, настройки, управление активами и редакторы открываются как вкладки основной области.'
+        },
+        topControls: {
+          title: 'Верхнее управление окном и макетом',
+          description: 'Верхняя область переключает макет Terminal/Agents и управляет боковыми панелями.'
+        },
+        aiToggle: {
+          title: 'Вход в правый чат AI',
+          description: 'Нажмите здесь или используйте Command/Ctrl + L, чтобы открыть чат AI справа от терминала.'
+        },
+        aiSidebar: {
+          title: 'Правая боковая панель AI',
+          description: 'Это рабочая область AI справа от терминала с историей, сообщениями, контекстом и вводом.'
+        }
+      },
+      systemSettings: {
+        settingEntry: {
+          title: 'Вход в настройки',
+          description: 'Нажмите шестеренку слева внизу, нажмите Далее или используйте Command/Ctrl + , чтобы открыть вкладку настроек.'
+        },
+        sideNav: {
+          title: 'Навигация по категориям',
+          description: 'Левая навигация переключает общие настройки, терминал, расширения, модели и другие страницы.'
+        },
+        general: {
+          title: 'Общие настройки',
+          description: 'Общая страница управляет внешним видом, языком, макетом по умолчанию, фоном и частыми предпочтениями.'
+        },
+        background: {
+          title: 'Настройки фона',
+          description: 'Выберите предустановленный фон или загрузите свое изображение, затем настройте прозрачность и яркость.'
+        },
+        backgroundPreset: {
+          title: 'Выберите фон',
+          description: 'Нажмите подсвеченную миниатюру фона, чтобы продолжить.'
+        },
+        terminalTab: {
+          title: 'Настройки терминала',
+          description: 'Нажмите категорию терминала, чтобы открыть параметры отображения, ввода и подключения.'
+        },
+        terminalOptions: {
+          title: 'Шрифт терминала, прокси и SSH Agent',
+          description: 'Здесь настраиваются шрифт, размер, прокси и поведение SSH Agent.'
+        },
+        aiPreferencesTab: {
+          title: 'Предпочтения AI',
+          description: 'Откройте предпочтения AI, чтобы настроить рассуждение, поиск в базе знаний и автоматическое выполнение.'
+        },
+        aiPreferencesContent: {
+          title: 'Содержимое предпочтений AI',
+          description: 'Здесь управляются расширенное мышление, автоматическое выполнение команд-запросов, поиск знаний, накопление опыта и прокси.'
+        },
+        aiAutoApproval: {
+          title: 'Включить автоматическое выполнение',
+          description:
+            'Нажмите этот переключатель, чтобы включить автоматическое выполнение. После этого AI сможет выполнять разрешенные инструменты без каждого подтверждения.'
+        }
+      },
+      addAndConnectHost: {
+        assetsEntry: {
+          title: 'Вход в активы',
+          description: 'Сначала откройте модуль активов, чтобы увидеть управление хостами и ключами.'
+        },
+        hostManagement: {
+          title: 'Управление хостами',
+          description: 'Управление хостами позволяет добавлять, редактировать, импортировать и подключать SSH-хосты.'
+        },
+        newHost: {
+          title: 'Кнопка нового хоста',
+          description: 'После нажатия Новый хост справа откроется форма хоста.'
+        },
+        formFields: {
+          title: 'Ключевые поля формы хоста',
+          description: 'Заполните адрес, порт, имя пользователя, способ аутентификации, группу и прокси.'
+        },
+        formSubmit: {
+          title: 'Сохранить хост',
+          description: 'Сохранение создает только конфигурацию хоста и не имитирует подключение.'
+        },
+        connectAsset: {
+          title: 'Подключение с карточки актива',
+          description: 'После сохранения нажмите или дважды нажмите карточку актива, чтобы запустить реальное подключение и завершить модуль.'
+        }
+      },
+      aiChat: {
+        sidebar: {
+          title: 'Открыть правую панель AI',
+          description: 'Нажмите вход справа вверху или используйте Command/Ctrl + L; значок AI на левой панели модулей тоже открывает ее.'
+        },
+        sidebarOverview: {
+          title: 'Правая боковая панель AI',
+          description: 'Здесь находится AI-чат текущего терминального процесса с историей, сообщениями, контекстом и вводом.'
+        },
+        input: {
+          title: 'Поле ввода AI',
+          description: 'Опишите цель, вопрос или состояние терминала, которое AI должен проверить.'
+        },
+        modeAgent: {
+          title: 'Выбрать режим Agent',
+          description: 'Это выбор режима. Список открыт; нажмите Agent, чтобы AI подробнее выполнял задачи на хосте.'
+        },
+        modelOpen: {
+          title: 'Открыть выбор модели',
+          description: 'Нажмите здесь, чтобы открыть список моделей.'
+        },
+        modelOption: {
+          title: 'Выбрать модель',
+          description: 'Нажмите доступную модель для этого AI-запроса.'
+        },
+        contextOpen: {
+          title: 'Открыть выбор контекста',
+          description: 'Нажмите Добавить контекст, чтобы выбрать целевой хост для этого запроса Agent.'
+        },
+        contextHosts: {
+          title: 'Открыть список хостов',
+          description: 'Нажмите категорию хостов, чтобы увидеть доступные цели выполнения.'
+        },
+        localhost: {
+          title: 'Выбрать 127.0.0.1',
+          description: 'Выберите локальный хост 127.0.0.1 как цель этого запроса Agent.'
+        },
+        send: {
+          title: 'Кнопка отправки',
+          description: 'В поле введено «проверить состояние хоста». Нажмите Отправить, чтобы запустить реальный AI-запрос и завершить модуль.'
+        }
+      }
+    }
+  },
   personal: {
     host: 'Управление хостами',
     newHost: 'Новый хост',
@@ -693,9 +876,14 @@ export default {
     pleaseInputPassword: 'Пожалуйста, введите пароль',
     pleaseSelectKeychain: 'Пожалуйста, выберите ключ',
     pleaseInputAlias: 'напр. Рабочая БД',
-    pleaseSelectGroup: 'Пожалуйста, выберите группу',
+    pleaseSelectGroup: 'Выберите или создайте группу',
+    newGroup: 'Новая группа',
+    newGroupPlaceholder: 'Введите название группы и нажмите Enter',
     pleaseSelectSshProxy: 'Пожалуйста, выберите SSH прокси',
     proxyConfig: 'SSH прокси',
+    advancedOptions: 'Расширенные параметры',
+    jumpHost: 'Хост-посредник',
+    jumpHostSelect: 'Выбрать хост-посредник',
     noProxyConfigFound: 'Не найдена конфигурация прокси',
     goToProxyConfig: 'Перейти к настройкам-терминал-конфигурация прокси',
     personal: 'Подключиться',
@@ -716,6 +904,7 @@ export default {
     favoriteUpdateError: 'Ошибка обновления статуса избранного',
     defaultGroup: 'Хосты',
     noAssets: 'Нет активов',
+    emptyAssetsDescription: 'Создайте хост вручную или импортируйте существующие файлы сеансов, чтобы начать подключение.',
     hostType: 'ssh',
     personalAsset: 'Личный актив',
     enterpriseAsset: 'Корпоративный актив',
@@ -730,6 +919,7 @@ export default {
     switchHuawei: 'Huawei',
     switchTip: 'Переключатели поддерживают только режим команды',
     bastionHost: 'Бастион-хост',
+    bastionType: 'Тип бастиона',
     qizhi: 'Бастион Qizhi',
     refreshAssets: 'Обновление активов',
     refreshingAssets: 'Обновление активов...',
@@ -885,6 +1075,7 @@ export default {
     noMatchingCommands: 'Нет совпадающих команд',
     copy: 'Копировать',
     run: 'Выполнить',
+    paste: 'Вставить',
     reject: 'Отклонить',
     approve: 'Одобрить',
     addAutoApprove: 'Добавить авто-подтверждение',
@@ -910,6 +1101,7 @@ export default {
     searchHistoryPH: 'Пожалуйста, введите',
     loading: 'Загрузка...',
     loadMore: 'Загрузить больше',
+    historyLoadHint: 'Доступны более старые сообщения. Прокрутите вверх, чтобы загрузить их.',
     copyToClipboard: 'Копировать в буфер обмена',
     retry: 'Повторить',
     taskCompleted: 'Задача выполнена',
@@ -1212,6 +1404,9 @@ export default {
     delete: 'Удалить',
     move: 'Переместить',
     copy: 'Копировать',
+    copyAbsolutePath: 'Копировать абсолютный путь',
+    copyAbsolutePathSuccess: 'Абсолютный путь скопирован',
+    copyAbsolutePathFailed: 'Не удалось скопировать абсолютный путь',
     more: 'Больше',
     download: 'Скачать',
     doubleClickToOpen: 'Двойной клик для открытия',
@@ -1334,7 +1529,12 @@ export default {
       mfaFailed: 'Двухфакторная аутентификация не удалась',
       multipleUsersDetected: 'Обнаружено несколько пользовательских учетных записей, пожалуйста, выберите...',
       connectingWithSelectedAccount: 'Соединение с выбранным учетным записями...',
-      userSelectionCanceled: 'Выбор пользовательского учетного записи отменен'
+      userSelectionCanceled: 'Выбор пользовательского учетного записи отменен',
+      syncFromJumpServer: 'Синхронизировать K8s ресурсы JumpServer',
+      sourceTag: 'JumpServer',
+      noBastion: 'Бастион не настроен, сначала настройте в SSH',
+      syncSuccess: 'Синхронизация завершена, добавлено {inserted}, обновлено {updated}',
+      syncFailed: 'Ошибка синхронизации'
     },
     qizhi: {
       connectingToBastionHost: 'Подключение к бастион-хосту Qizhi...',
@@ -1344,6 +1544,7 @@ export default {
       authenticating: 'Аутентификация...',
       connectedToTarget: 'Подключено к целевому серверу',
       mfaRequired: 'Вторичная аутентификация бастион-хоста Qizhi',
+      selectingAssetCategory: 'Выбор категории актива',
       mfaPrompt: 'Введите второй пароль',
       mfaFailed: 'Вторичная аутентификация не удалась',
       mfaTimeout: 'Истекло время аутентификации, повторите попытку',
@@ -1432,7 +1633,7 @@ export default {
     milliseconds: 'миллисекунды'
   },
   mcp: {
-    title: 'Инструменты & MCP',
+    title: 'MCP',
     description: 'Управление соединениями MCP серверов для расширения возможностей AI',
     serverList: 'MCP сервера',
     addServer: 'Добавить сервер',
@@ -1636,6 +1837,7 @@ export default {
       addCluster: 'Добавить кластер',
       clusterAdded: 'Кластер успешно добавлен',
       noClusters: 'Кластеры не настроены',
+      localClusters: 'Локальные кластеры',
       noTerminal: 'Нет открытых сеансов терминала',
       createTerminal: 'Создать терминал',
       selectClusterFirst: 'Сначала выберите кластер',
@@ -1687,9 +1889,73 @@ export default {
       active: 'Активный',
       selectClusterToEdit: 'Выберите кластер для просмотра и редактирования',
       k8sClusterConfig: 'Управление кластерами'
+    },
+    jumpserver: {
+      bastionResources: 'Ресурсы бастиона',
+      syncFromJumpServer: 'Синхронизировать K8s ресурсы JumpServer',
+      sourceTag: 'JumpServer',
+      noBastion: 'Бастион не настроен, сначала настройте в SSH',
+      syncSuccess: 'Синхронизация завершена, добавлено {inserted}, обновлено {updated}',
+      syncFailed: 'Ошибка синхронизации'
     }
   },
   database: {
+    title: 'База данных',
+    group: 'Группа',
+    rootGroup: 'Корневая группа',
+    newGroup: 'Новая группа',
+    copyName: 'Копировать имя',
+    moveTo: 'Переместить в',
+    deleteGroup: 'Удалить группу',
+    searchPlaceholder: 'Поиск подключений или таблиц...',
+    newConnection: 'Новое подключение',
+    newConnectionOf: 'Новое подключение {dbType}',
+    overview: 'Обзор',
+    overviewLead: 'Выберите таблицу слева; двойной щелчок откроет рабочую область SQL.',
+    overviewTipExplore: 'Просматривайте группы, подключения и объекты базы данных слева.',
+    overviewTipConnection: 'Нажмите кнопку с плюсом в правом верхнем углу, чтобы создать подключение.',
+    overviewTipQuery: 'Дважды щелкните таблицу, чтобы открыть рабочую область SQL, выполнить и отформатировать запросы.',
+    testConnection: 'Проверить подключение',
+    testConnectionPassed: 'Подключение успешно',
+    testConnectionInFlight: 'Проверка подключения...',
+    fixRequiredFields: 'Сначала заполните обязательные поля.',
+    authentication: 'Аутентификация',
+    authUserAndPassword: 'Пользователь и пароль',
+    driver: 'Драйвер',
+    driverPlaceholder: 'Загрузка драйверов будет поддержана на следующем этапе.',
+    driverClass: 'Имя класса',
+    uploadDriver: 'Загрузить драйвер',
+    sshConfiguration: 'Конфигурация SSH',
+    sshConfigurationPlaceholder: 'Повторное использование SSH-туннеля будет подключено позже.',
+    advancedConfiguration: 'Расширенная конфигурация',
+    advancedConfigurationPlaceholder: 'Заполнитель панели расширенных параметров.',
+    noResults: 'Нет результатов',
+    loading: 'Загрузка...',
+    firstPage: 'Первая страница',
+    prevPage: 'Предыдущая страница',
+    nextPage: 'Следующая страница',
+    lastPage: 'Последняя страница',
+    refresh: 'Обновить',
+    total: 'Всего',
+    totalTooltip: 'Нажмите, чтобы обновить общее число строк',
+    filterApply: 'Применить',
+    filterClear: 'Очистить фильтр',
+    filterLikePlaceholder: 'Нечеткое совпадение, Enter для применения',
+    filterLocalSearch: 'Локальный поиск {column}',
+    filterAll: 'Все',
+    sortTooltip: 'Нажмите, чтобы переключить сортировку: по возрастанию / по убыванию / отменить',
+    filterTooltip: 'Фильтр столбца',
+    sqlFilterPlaceholder: 'Введите SQL-выражение для фильтрации результатов (Ctrl+Space)',
+    wherePlaceholder: "Ручное выражение WHERE (переопределяет фильтры столбцов), например: id > 100 AND name LIKE '%abc%'",
+    orderByPlaceholder: 'Ручное выражение ORDER BY (переопределяет сортировку столбцов), например: created_at DESC, id ASC',
+    statusResult: 'Результат',
+    statusTime: 'Время',
+    statusRows: 'Строки',
+    statusExecutionOk: 'Выполнено успешно',
+    rowCount: 'Всего {count} строк',
+    run: 'Выполнить',
+    stop: 'Остановить',
+    settings: 'Настройки',
     deleteGroupConfirmTitle: 'Удалить группу',
     deleteGroupConfirmContent: 'Вы уверены, что хотите удалить группу "{name}"? Это действие нельзя отменить.',
     refreshConnected: 'Обновить подключённые сеансы',
@@ -1726,6 +1992,23 @@ export default {
     overviewColTime: 'Время',
     noExecutionsYet: 'Пока нет запусков.',
     closeResultTab: 'Закрыть вкладку результата',
+    fields: {
+      name: 'Имя',
+      env: 'Среда',
+      dbType: 'Тип БД',
+      host: 'Хост',
+      port: 'Порт',
+      user: 'Пользователь',
+      password: 'Пароль',
+      database: 'База данных',
+      oracleService: 'Имя службы / PDB',
+      oracleConnectString: 'Строка подключения',
+      filePath: 'Файл базы данных',
+      readonly: 'Только чтение',
+      readonlyHint: 'Открыть без прав на запись',
+      url: 'URL',
+      sslMode: 'Режим SSL'
+    },
     connectionMenu: {
       openConnection: 'Открыть соединение',
       closeConnection: 'Закрыть соединение',
@@ -1812,11 +2095,14 @@ export default {
       statusDone: 'Завершено',
       statusError: 'Ошибка',
       statusCancelled: 'Отменено',
+      diagnosing: 'ИИ анализирует...',
+      diagnosedAndReplaced: 'SQL исправлен и заменён',
       actionExplain: 'Объяснить',
       actionNl2Sql: 'NL в SQL',
       actionOptimize: 'Оптимизировать',
       actionConvert: 'Конвертировать диалект',
       actionComplete: 'Автозавершение',
+      actionDiagnose: 'Исправление ИИ',
       nl2SqlPrompt: {
         title: 'Сгенерировать SQL из вопроса',
         hint: 'Опишите на естественном языке, что вы хотите запросить. Текущее соединение и схема будут использованы как контекст.',

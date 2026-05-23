@@ -14,9 +14,11 @@ interface Cookie {
 
 export interface DbAssetPayload {
   name: string
-  db_type: 'mysql' | 'postgresql'
-  host: string
-  port: number
+  db_type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
+  host?: string | null
+  port?: number | null
+  file_path?: string | null
+  connection_mode?: 'readwrite' | 'readonly' | null
   group_id?: string | null
   username?: string | null
   password?: string | null
@@ -25,6 +27,7 @@ export interface DbAssetPayload {
   environment?: string | null
   group_name?: string | null
   ssl_mode?: string | null
+  jdbc_url?: string | null
   options_json?: string | null
   tags_json?: string | null
   sort_order?: number
@@ -35,16 +38,19 @@ export interface DbAssetDto {
   name: string
   group_id: string | null
   group_name: string | null
-  db_type: 'mysql' | 'postgresql'
+  db_type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
   environment: string | null
-  host: string
-  port: number
+  host: string | null
+  port: number | null
+  file_path: string | null
+  connection_mode: 'readwrite' | 'readonly' | null
   database_name: string | null
   schema_name: string | null
   auth_type: string
   username: string | null
   hasPassword: boolean
   ssl_mode: string | null
+  jdbc_url: string | null
   status: 'idle' | 'testing' | 'connected' | 'failed'
   last_connected_at: string | null
   last_tested_at: string | null
@@ -298,6 +304,18 @@ interface ApiType {
   getLocalIP: () => Promise<string>
   getMacAddress: () => Promise<string>
   getPlatform: () => Promise<string>
+  downloadPluginPackage: (url: string) => Promise<ArrayBuffer>
+  installPluginFromUrl: (payload: { pluginId: string; version?: string; fileName?: string; url: string; sha256?: string }) => Promise<any>
+  cancelPluginInstall: (pluginId: string) => Promise<{ ok: boolean }>
+  onPluginInstallProgress: (
+    callback: (payload: {
+      pluginId: string
+      stage: 'downloading' | 'verifying' | 'installing' | 'done' | 'error' | 'cancelled'
+      receivedBytes?: number
+      totalBytes?: number
+      percent?: number
+    }) => void
+  ) => () => void
   invokeCustomAdsorption: (data: { appX: number; appY: number }) => void
   queryCommand: (data: { command: string; ip: string }) => Promise<any>
   insertCommand: (data: { command: string; ip: string }) => Promise<any>
@@ -572,7 +590,7 @@ interface ApiType {
       workspace: 'server' | 'database'
       dbContext?: {
         assetId?: string
-        dbType?: 'mysql' | 'postgresql'
+        dbType?: 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
         databaseName?: string
         schemaName?: string
         assetName?: string
@@ -908,6 +926,11 @@ interface ApiType {
     contextName: string
     kubeconfigPath?: string
     kubeconfigContent?: string
+    sourceType?: string
+    bastionUuid?: string
+    bastionAssetAddress?: string
+    bastionAssetName?: string
+    bastionAssetIdLast?: number | null
   }) => Promise<{ success: boolean; error?: string }>
 
   /**
@@ -1026,6 +1049,15 @@ interface ApiType {
    */
   k8sAgentCleanup: () => Promise<{ success: boolean; error?: string }>
 
+  /**
+   * Sync all JumpServer K8s assets into k8s_clusters via upsert
+   */
+  k8sJumpserverSyncAssets: (params: { bastionUuid: string }) => Promise<{
+    success: boolean
+    data?: { inserted: number; updated: number; total: number }
+    error?: string
+  }>
+
   // ============================================================================
   // Interactive Command Execution API
   // ============================================================================
@@ -1113,6 +1145,12 @@ interface ApiType {
    * Open the log directory in the system file manager
    */
   openLogDir: () => Promise<void>
+
+  /**
+   * Listen for auth token expiry notifications from main process.
+   * Returns an unsubscribe function.
+   */
+  onTokenExpired: (callback: () => void) => () => void
 }
 
 declare global {

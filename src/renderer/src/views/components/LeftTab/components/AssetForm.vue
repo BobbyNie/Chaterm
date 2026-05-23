@@ -11,7 +11,10 @@
       />
     </div>
 
-    <div class="form-content">
+    <div
+      class="form-content"
+      data-onboarding-id="asset-form-fields"
+    >
       <a-form
         :label-col="{ span: 27 }"
         :wrapper-col="{ span: 27 }"
@@ -198,59 +201,6 @@
               />
             </a-form-item>
           </template>
-
-          <div>
-            <a-form-item
-              :label="t('personal.proxyConfig')"
-              class="user_my-ant-form-item"
-            >
-              <a-switch
-                :checked="formData.needProxy"
-                class="user_my-ant-form-item-content"
-                @change="handleSshProxyStatusChange"
-              />
-            </a-form-item>
-
-            <a-form-item
-              v-if="formData.needProxy"
-              :label="t('personal.pleaseSelectSshProxy')"
-            >
-              <a-select
-                v-if="sshProxyConfigs && sshProxyConfigs.length > 0"
-                v-model:value="formData.proxyName"
-                :placeholder="t('personal.pleaseSelectSshProxy')"
-                style="width: 100%"
-                show-search
-                :max-tag-count="4"
-                :options="sshProxyConfigs"
-                :option-filter-prop="'label'"
-                :field-names="{ value: 'key', label: 'label' }"
-                :allow-clear="true"
-              >
-              </a-select>
-              <div
-                v-else
-                style="
-                  width: 100%;
-                  padding: 12px;
-                  border: 1px solid var(--border-color);
-                  border-radius: 4px;
-                  text-align: center;
-                  background-color: var(--bg-color);
-                "
-              >
-                <div style="margin-bottom: 8px; color: var(--text-color-secondary)">
-                  {{ t('personal.noProxyConfigFound') }}
-                </div>
-                <a-button
-                  type="link"
-                  size="small"
-                  @click="handleAddProxyConfig"
-                  >{{ t('personal.goToProxyConfig') }}</a-button
-                >
-              </div>
-            </a-form-item>
-          </div>
         </div>
 
         <!-- General information -->
@@ -273,19 +223,136 @@
           >
             <a-select
               v-model:value="formData.group_name"
-              mode="tags"
               :placeholder="t('personal.pleaseSelectGroup')"
-              :max-tag-count="2"
               style="width: 100%"
+              show-search
+              :options="groupOptions"
+              :option-filter-prop="'label'"
+              :allow-clear="false"
               @change="handleGroupChange"
             >
-              <a-select-option
-                v-for="item in defaultGroups"
-                :key="item"
-                :value="item"
+              <template #dropdownRender="{ menuNode }">
+                <component :is="menuNode" />
+                <a-divider class="group-create-divider" />
+                <div
+                  class="group-create-area"
+                  @mousedown.prevent
+                >
+                  <template v-if="!isCreatingGroup">
+                    <a-button
+                      type="link"
+                      block
+                      @click="startCreateGroup"
+                      >+ {{ t('personal.newGroup') }}</a-button
+                    >
+                  </template>
+                  <template v-else>
+                    <a-input
+                      ref="newGroupInputRef"
+                      v-model:value="newGroupName"
+                      :placeholder="t('personal.newGroupPlaceholder')"
+                      size="small"
+                      style="flex: 1; min-width: 0"
+                      @mousedown.stop
+                      @keydown.enter.prevent="confirmCreateGroup"
+                      @keydown.esc.prevent="cancelCreateGroup"
+                    />
+                    <a-button
+                      type="text"
+                      size="small"
+                      class="group-create-action"
+                      :disabled="!newGroupName.trim()"
+                      @click="confirmCreateGroup"
+                    >
+                      <CheckOutlined />
+                    </a-button>
+                    <a-button
+                      type="text"
+                      size="small"
+                      class="group-create-action"
+                      @click="cancelCreateGroup"
+                    >
+                      <CloseOutlined />
+                    </a-button>
+                  </template>
+                </div>
+              </template>
+            </a-select>
+          </a-form-item>
+        </div>
+
+        <!-- Advanced options -->
+        <div class="form-section">
+          <div class="section-title">
+            <div class="title-indicator"></div>
+            {{ t('personal.advancedOptions') }}
+          </div>
+
+          <a-form-item
+            :label="t('personal.proxyConfig')"
+            class="user_my-ant-form-item"
+          >
+            <a-switch
+              :checked="formData.needProxy"
+              class="user_my-ant-form-item-content"
+              @change="handleSshProxyStatusChange"
+            />
+          </a-form-item>
+
+          <a-form-item
+            v-if="formData.needProxy"
+            :label="t('personal.pleaseSelectSshProxy')"
+          >
+            <a-select
+              v-if="sshProxyConfigs && sshProxyConfigs.length > 0"
+              v-model:value="formData.proxyName"
+              :placeholder="t('personal.pleaseSelectSshProxy')"
+              style="width: 100%"
+              show-search
+              :max-tag-count="4"
+              :options="sshProxyConfigs"
+              :option-filter-prop="'label'"
+              :field-names="{ value: 'key', label: 'label' }"
+              :allow-clear="true"
+            >
+            </a-select>
+            <div
+              v-else
+              style="
+                width: 100%;
+                padding: 12px;
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                text-align: center;
+                background-color: var(--bg-color);
+              "
+            >
+              <div style="margin-bottom: 8px; color: var(--text-color-secondary)">
+                {{ t('personal.noProxyConfigFound') }}
+              </div>
+              <a-button
+                type="link"
+                size="small"
+                @click="handleAddProxyConfig"
+                >{{ t('personal.goToProxyConfig') }}</a-button
               >
-                {{ item }}
-              </a-select-option>
+            </div>
+          </a-form-item>
+
+          <a-form-item
+            v-if="formData.asset_type === 'person'"
+            :label="t('personal.jumpHost')"
+          >
+            <a-select
+              v-model:value="formData.jumpHostUuid"
+              :placeholder="t('personal.jumpHostSelect')"
+              style="width: 100%"
+              show-search
+              :options="filteredJumpHostOptions"
+              :option-filter-prop="'label'"
+              :field-names="{ value: 'value', label: 'label' }"
+              :allow-clear="true"
+            >
             </a-select>
           </a-form-item>
         </div>
@@ -296,6 +363,7 @@
       <a-button
         type="primary"
         class="submit-button"
+        data-onboarding-id="asset-form-submit"
         @click="handleSubmit"
       >
         {{ isEditMode ? t('personal.saveAsset') : t('personal.createAsset') }}
@@ -305,8 +373,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, ref, computed, onMounted } from 'vue'
-import { ToTopOutlined } from '@ant-design/icons-vue'
+import { reactive, watch, ref, computed, onMounted, nextTick } from 'vue'
+import { ToTopOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import i18n from '@/locales'
 import eventBus from '@/utils/eventBus'
@@ -375,12 +443,19 @@ onMounted(() => {
   loadBastionDefinitions()
 })
 
+interface JumpHostOption {
+  value: string
+  label: string
+}
+
 interface Props {
   isEditMode?: boolean
   initialData?: Partial<AssetFormData>
   keyChainOptions?: KeyChainItem[]
   sshProxyConfigs?: SshProxyConfigItem[]
   defaultGroups?: string[]
+  jumpHostOptions?: JumpHostOption[]
+  editingAssetUuid?: string | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -388,8 +463,15 @@ const props = withDefaults(defineProps<Props>(), {
   initialData: () => ({}),
   keyChainOptions: () => [],
   sshProxyConfigs: () => [],
-  defaultGroups: () => ['development', 'production', 'staging', 'testing', 'database']
+  defaultGroups: () => ['development', 'production', 'staging', 'testing', 'database'],
+  jumpHostOptions: () => [],
+  editingAssetUuid: null
 })
+
+// Exclude the asset being edited so it cannot reference itself.
+const filteredJumpHostOptions = computed(() =>
+  (props.jumpHostOptions || []).filter((opt) => !props.editingAssetUuid || opt.value !== props.editingAssetUuid)
+)
 
 const emit = defineEmits<{
   close: []
@@ -476,6 +558,7 @@ const formData = reactive<AssetFormData>({
   asset_type: 'person',
   needProxy: false,
   proxyName: '',
+  jumpHostUuid: '',
   ...props.initialData
 })
 
@@ -582,16 +665,56 @@ const handleAddKeychain = () => {
   emit('add-keychain')
 }
 
-const handleGroupChange = (val: any) => {
-  if (Array.isArray(val) && val.length > 0) {
-    formData.group_name = String(val[val.length - 1])
-  } else if (typeof val === 'string' && val.trim()) {
-    formData.group_name = val
-  } else if (typeof val === 'number') {
-    formData.group_name = String(val)
-  } else {
-    formData.group_name = ''
+const handleGroupChange = (val: string | undefined) => {
+  formData.group_name = typeof val === 'string' ? val : ''
+}
+
+// Inline group creation (single-select dropdown footer)
+const customGroups = ref<string[]>([])
+const isCreatingGroup = ref(false)
+const newGroupName = ref('')
+const newGroupInputRef = ref<any>(null)
+
+const groupOptions = computed(() => {
+  const seen = new Set<string>()
+  const out: { label: string; value: string }[] = []
+  const push = (name: string | undefined | null) => {
+    if (!name) return
+    const trimmed = String(name).trim()
+    if (!trimmed || seen.has(trimmed)) return
+    seen.add(trimmed)
+    out.push({ label: trimmed, value: trimmed })
   }
+  push(t('personal.defaultGroup'))
+  ;(props.defaultGroups || []).forEach(push)
+  customGroups.value.forEach(push)
+  push(formData.group_name)
+  return out
+})
+
+const startCreateGroup = () => {
+  isCreatingGroup.value = true
+  newGroupName.value = ''
+  nextTick(() => newGroupInputRef.value?.focus())
+}
+
+const cancelCreateGroup = () => {
+  isCreatingGroup.value = false
+  newGroupName.value = ''
+}
+
+const confirmCreateGroup = () => {
+  const name = newGroupName.value.trim()
+  if (!name) return
+  const existing = groupOptions.value.find((o) => o.value.toLowerCase() === name.toLowerCase())
+  if (existing) {
+    formData.group_name = existing.value
+  } else {
+    customGroups.value.push(name)
+    formData.group_name = name
+  }
+  isCreatingGroup.value = false
+  newGroupName.value = ''
 }
 
 const hasSpaces = (value: string): boolean => {
@@ -673,7 +796,7 @@ const handleSubmit = () => {
   emit('submit', submitData)
 }
 
-const handleSshProxyStatusChange = async (checked) => {
+const handleSshProxyStatusChange = async (checked: boolean) => {
   formData.needProxy = checked
 }
 
@@ -729,6 +852,7 @@ watch(
       asset_type: 'person',
       needProxy: false,
       proxyName: '',
+      jumpHostUuid: '',
       ...newData
     })
     Object.assign(validationErrors, {
@@ -903,8 +1027,20 @@ watch(
   color: var(--text-color);
 }
 
-.general-group :deep(.ant-select-selection-item) {
-  background-color: var(--hover-bg-color);
+.group-create-divider {
+  margin: 4px 0;
+}
+
+.group-create-area {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.group-create-action {
+  flex-shrink: 0;
+  padding: 0 6px;
 }
 
 /* Error input styles */

@@ -214,6 +214,13 @@ Code changes involve the project's core logic and functionality, and must underg
 
 **Preload Scripts (src/preload):**
 
+New tables or schema changes:
+
+1. Create timestamped file in `migrations/`
+2. Ensure idempotent and replayable
+3. Add service methods in corresponding `.service.ts`
+4. Define types in `types.ts`
+
 - Use `contextBridge` to expose minimal API set
 - All exposed APIs must define types in `src/preload/index.d.ts`
 - Do not directly expose Node.js capabilities to renderer layer

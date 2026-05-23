@@ -1,5 +1,8 @@
 <template>
-  <div class="userInfo">
+  <div
+    class="userInfo"
+    data-onboarding-id="settings-general-content"
+  >
     <a-card
       :bordered="false"
       class="userInfo-container"
@@ -57,7 +60,10 @@
           :label="$t('user.background')"
           class="user_my-ant-form-item"
         >
-          <div class="bg-content">
+          <div
+            class="bg-content"
+            data-onboarding-id="settings-background-section"
+          >
             <!-- Background Grid -->
             <div class="unified-bg-grid">
               <!-- Slot 1: Default Background (no background) -->
@@ -78,6 +84,7 @@
                 :key="i"
                 class="bg-grid-item system-item"
                 :class="{ active: userConfig.background.mode === 'image' && userConfig.background.image.includes(`wall-${i}.jpg`) }"
+                :data-onboarding-id="i === 1 ? 'settings-background-preset' : undefined"
                 @click="selectSystemBackground(i)"
               >
                 <img
@@ -173,6 +180,7 @@
             class="language-select"
             @change="changeLanguage"
           >
+            <a-select-option value="system">{{ $t('user.languageSystem') }}</a-select-option>
             <a-select-option value="zh-CN">简体中文</a-select-option>
             <a-select-option value="zh-TW">繁體中文</a-select-option>
             <a-select-option value="en-US">English</a-select-option>
@@ -197,6 +205,18 @@
             <a-radio value="open">{{ $t('user.watermarkOpen') }}</a-radio>
             <a-radio value="close">{{ $t('user.watermarkClose') }}</a-radio>
           </a-radio-group>
+        </a-form-item>
+
+        <a-form-item
+          :label="$t('user.onboardingGuide')"
+          class="user_my-ant-form-item"
+        >
+          <a-button
+            class="setting-button"
+            @click="openOnboardingGuide"
+          >
+            {{ $t('user.openOnboardingGuide') }}
+          </a-button>
         </a-form-item>
 
         <!-- Editor Settings -->
@@ -328,6 +348,7 @@ import { applyThemeToDocument } from '@/themes/applyTheme'
 import type { ThemeId } from '../../../../../../shared/themes/types'
 import { useI18n } from 'vue-i18n'
 import { convertFileLocalResourceSrc } from '@/utils/convertFileLocalResourceSrc'
+import { resolveAppliedLanguage } from '@/utils/languageUtils'
 
 const logger = createRendererLogger('settings.general')
 const api = window.api
@@ -592,12 +613,14 @@ onBeforeUnmount(() => {
 })
 
 const changeLanguage = async () => {
-  locale.value = userConfig.value.language
-  localStorage.setItem('lang', userConfig.value.language)
-  configStore().updateLanguage(userConfig.value.language)
+  const stored = userConfig.value.language
+  const applied = resolveAppliedLanguage(stored)
+  locale.value = applied
+  localStorage.setItem('lang', stored)
+  configStore().updateLanguage(stored)
 
   // Notify other components that language has changed, need to refresh data
-  eventBus.emit('languageChanged', userConfig.value.language)
+  eventBus.emit('languageChanged', stored)
 }
 
 // Setup system theme change listener
@@ -801,6 +824,10 @@ const changeBackgroundBrightness = async () => {
   await saveConfig()
 }
 
+const openOnboardingGuide = () => {
+  eventBus.emit('open-user-tab', 'onboardingGuide')
+}
+
 // Save editor config to store and persist via IPC
 const saveEditorConfig = async () => {
   try {
@@ -911,6 +938,19 @@ const saveEditorConfig = async () => {
 
 .theme-select {
   width: 240px !important;
+}
+
+.setting-button {
+  min-width: 120px;
+  color: var(--text-color);
+  background-color: var(--button-bg-color);
+  border-color: var(--button-bg-color);
+}
+
+.setting-button:hover,
+.setting-button:focus {
+  background-color: var(--button-hover-bg);
+  border-color: var(--button-hover-bg);
 }
 
 .language-select :deep(.ant-select-selector),

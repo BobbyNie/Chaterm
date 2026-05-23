@@ -26,6 +26,7 @@ export default {
     userConfig: 'الإعدادات',
     alias: 'الألياس',
     assetConfig: 'إدارة الأصول',
+    onboardingGuide: 'دليل البدء',
     search: 'البحث',
     connect: 'الاتصال',
     edit: 'تعديل',
@@ -66,6 +67,13 @@ export default {
     forkSsh: 'تفريع قناة SSH',
     clearTerm: 'مسح الشاشة',
     shrotenName: 'إختصار اسم المضيف',
+    fontsize: 'حجم الخط',
+    largen: 'تكبير',
+    smaller: 'تصغير',
+    globalExecOn: 'التنفيذ العام (مفعل)',
+    globalExec: 'التنفيذ العام',
+    allExecuted: 'تم تنفيذ الكل',
+    pleaseLoginFirst: 'يرجى تسجيل الدخول أولاً',
     select: 'اختيار',
     rightArrowKey: 'السهم اليمين للاقتراح',
     reset: 'إعادة التعيين',
@@ -74,6 +82,11 @@ export default {
     deleteConfirm: 'تأكيد الحذف',
     deleteConfirmContent: 'هل أنت متأكد من رغبتك في حذف هذا الملف؟',
     quickCommand: 'الأوامر السريعة',
+    fileManager: 'مدير الملفات',
+    add: 'إضافة',
+    all: 'الكل',
+    refresh: 'تحديث',
+    fullscreen: 'ملء الشاشة',
     exitFullscreen: 'إغلاق الشاشة الكاملة',
     editFile: 'تعديل الملف:',
     newFile: 'ملف جديد:',
@@ -117,7 +130,10 @@ export default {
     daysAgo: ' يوم مضت',
     run: 'تنفيذ',
     jumpserverSupportPlugin: 'دعم Jumpserver',
-    noSearchResults: 'لا يوجد نتائج البحث'
+    noSearchResults: 'لا يوجد نتائج البحث',
+    previous: 'السابق',
+    next: 'التالي',
+    database: 'قاعدة البيانات'
   },
   term: {
     welcome: 'مرحبا بك في استخدام Chaterm',
@@ -251,7 +267,10 @@ export default {
     watermarkDescribe: 'عرض المائية على التبويب',
     watermarkOpen: 'افتح',
     watermarkClose: 'أغلق',
+    onboardingGuide: 'دليل البدء',
+    openOnboardingGuide: 'فتح دليل البدء',
     language: 'اللغة',
+    languageSystem: 'اتباع النظام',
     theme: 'السمة',
     themeDark: 'داكن',
     themeLight: 'فاتح',
@@ -472,6 +491,8 @@ export default {
     checkFailMessage: 'الاتصال فشل',
     checkFailDescriptionDefault: 'خطأ غير معروف',
     checkFailDescriptionMain: 'لا يمكن الاتصال بالعملية الرئيسية',
+    checkModelConfigFailMessage: 'معلمات تكوين النموذج المطلوبة مفقودة',
+    checkModelConfigFailDescription: 'يرجى تعبئة تكوين النموذج المطلوب: الإعدادات -> النموذج -> إضافة نموذج -> تكوين API',
     models: 'النماذج',
     modelNames: 'أسماء النماذج',
     aiPreferences: 'تفضيلات الذكاء الاصطناعي',
@@ -549,7 +570,9 @@ export default {
     unableToGetFilePath: 'لا يمكن الحصول على مسار الملف',
     formatError: 'خطأ في التنسيق',
     onDropTip: 'الرجاء إسقاط حزمة الامتداد مع امتداد .chaterm',
-    installing: 'جاري تثبيت الامتداد...',
+    installing: 'جارٍ التثبيت',
+    verifying: 'التحقق من.',
+    downloading: 'جارٍ التحميل.',
     waitForInstall: 'جاري استخراج وتكوين بيئة الامتداد. الرجاء الإنتظار...',
     installSuccess: 'تم تثبيت الامتداد بنجاح',
     initSuccess: 'تم تثبيت الامتداد بنجاح',
@@ -576,6 +599,7 @@ export default {
     uninstalling: 'جاري إلغاء التثبيت',
     uninstall: 'إلغاء التثبيت',
     uninstallError: 'حدث خطأ أثناء إلغاء التثبيت',
+    uninstallDirectoryBusy: 'دليل الإضافات مشغول حالياً، لا يمكن إلغاء التثبيت، يرجى الانتظار أو إعادة تشغيل Chaterm ثم المحاولة مرة أخرى.',
     install: 'تثبيت',
     subscribe: 'اشتراك',
     update: 'تحديث',
@@ -596,6 +620,11 @@ export default {
       jmsPluginFuncAuth: 'الحالة المستمرة للمصادقة',
       jmsPluginFuncAuthDetail:
         'يحافظ على حالات الدخول المستمرة بعد المصادقة الناجحة, تجنب الحاجة إلى مفاتيح MFA المكررة للعديد من الاتصالات وتعزيز كفاءة العمل.',
+      jmsPluginFuncAgent: 'تعزيز اتصال Agent',
+      jmsPluginFuncAgentDetail:
+        'يدعم اتصال AI Agent عبر المضيف الحصين مباشرة إلى الخادم الهدف، متجاوزاً عزل العمليات لتحقيق تنفيذ الأوامر والتفاعل العميق مع AI على الجهاز الهدف.',
+      jmsPluginFuncAgentLog: 'عرض الاتصال (سجلات محاكاة)',
+      jmsPluginGuide: 'دليل الإعداد',
       jmsStep1: "1. افتح 'إدارة المفاتيح' في الشريط الجانبي, انقر على 'إضافة مفتاح' واحفظ الإعدادات.",
       jmsStep2: "2. انقر على 'قائمة الخوادم' في الشريط الجانبي, ثم اذهب إلى 'إدارة الأصول' وانقر على 'إضافة الأصول'.",
       jmsStep3: "3. اختر 'الأصول المؤسسية', قم بتعبئة العنوان, المستخدم, المنفذ والمفتاح (اعدد الرمز السري إذا كانت MFA مطلوبة), ثم احفظ.",
@@ -643,6 +672,177 @@ export default {
       toggleLayout: 'تبديل التخطيط (التبويب/الأجهزة)'
     }
   },
+  onboarding: {
+    guide: {
+      title: 'تعرّف على Chaterm من خلال وحدة واحدة',
+      description:
+        'اختر وحدة لفتح الصفحة المقابلة تلقائياً وإبراز المناطق المهمة. أثناء الدليل، تصبح المناطق غير المميزة غير قابلة للاستخدام مؤقتاً، بينما تظل المنطقة المميزة قابلة للنقر.',
+      progress: 'تم إكمال {completed}/{total}'
+    },
+    modules: {
+      interfaceGuide: {
+        title: 'دليل الواجهة',
+        description: 'تعرّف على الوحدات اليسرى ولوحة الوظائف وتبويبات مساحة العمل وتحكم التخطيط العلوي ومدخل AI.'
+      },
+      systemSettings: {
+        title: 'إعدادات النظام',
+        description: 'تعرّف على الإعدادات العامة والسمات واللغة والتخطيط الافتراضي وخط الطرفية والوكيل و SSH Agent.'
+      },
+      addAndConnectHost: {
+        title: 'إضافة مضيف والاتصال به',
+        description: 'أنشئ مضيفاً وابدأ اتصالاً حقيقياً عبر النقر أو النقر المزدوج على بطاقة الأصل.'
+      },
+      aiChat: {
+        title: 'استخدام محادثة AI',
+        description: 'افتح شريط AI الأيمن، واختر Agent والنموذج والمضيف المحلي، ثم ابدأ طلب AI حقيقي.'
+      }
+    },
+    spotlight: {
+      previous: 'السابق',
+      next: 'التالي',
+      finish: 'إنهاء',
+      progress: '{current}/{total}',
+      targetMissing: 'الهدف الحالي غير ظاهر مؤقتاً. أكمل الخطوة السابقة أولاً أو انقر التالي للمتابعة.'
+    },
+    tours: {
+      interfaceGuide: {
+        moduleSwitcher: {
+          title: 'شريط تبديل الوحدات الأيسر',
+          description: 'من هنا يتم التبديل بين مساحة العمل والأصول والملفات وقاعدة المعرفة والوحدات الأساسية الأخرى.'
+        },
+        functionPanel: {
+          title: 'لوحة الوظائف اليسرى',
+          description: 'بعد اختيار وحدة، تظهر هنا القوائم والبحث ومداخل الإدارة المرتبطة بها.'
+        },
+        workspace: {
+          title: 'تبويبات مساحة العمل الرئيسية',
+          description: 'تفتح الطرفية والإعدادات وإدارة الأصول والمحررات كتبوبيات في مساحة العمل الرئيسية.'
+        },
+        topControls: {
+          title: 'تحكم النافذة والتخطيط العلوي',
+          description: 'تُستخدم المنطقة العلوية للتبديل بين تخطيط Terminal/Agents والتحكم في الأشرطة الجانبية.'
+        },
+        aiToggle: {
+          title: 'مدخل محادثة AI الأيمن',
+          description: 'انقر هنا أو استخدم Command/Ctrl + L لفتح شريط محادثة AI يمين الطرفية.'
+        },
+        aiSidebar: {
+          title: 'الشريط الجانبي AI الأيمن',
+          description: 'هذه مساحة عمل AI يمين الطرفية، وتحتوي على السجل والرسائل ومدخل السياق وتحكم الإدخال.'
+        }
+      },
+      systemSettings: {
+        settingEntry: {
+          title: 'مدخل الإعدادات',
+          description: 'انقر ترس الزاوية اليسرى السفلية، أو التالي، أو استخدم Command/Ctrl + , لفتح تبويب إعدادات النظام.'
+        },
+        sideNav: {
+          title: 'تنقل فئات الإعدادات',
+          description: 'يُستخدم التنقل الأيسر للتبديل بين الإعدادات العامة والطرفية والملحقات والنماذج وغيرها.'
+        },
+        general: {
+          title: 'محتوى الإعدادات العامة',
+          description: 'تدير الصفحة العامة المظهر واللغة والتخطيط الافتراضي والخلفية والتفضيلات الشائعة.'
+        },
+        background: {
+          title: 'إعدادات الخلفية',
+          description: 'يمكنك اختيار خلفية جاهزة أو رفع صورة مخصصة وضبط الشفافية والسطوع.'
+        },
+        backgroundPreset: {
+          title: 'اختيار خلفية',
+          description: 'انقر مصغّر الخلفية المميز للمتابعة.'
+        },
+        terminalTab: {
+          title: 'فئة إعدادات الطرفية',
+          description: 'انقر فئة الطرفية للدخول إلى خيارات العرض والإدخال والاتصال.'
+        },
+        terminalOptions: {
+          title: 'خط الطرفية والوكيل و SSH Agent',
+          description: 'هنا يمكنك ضبط الخط وحجمه وتكوين الوكيل وسلوك SSH Agent.'
+        },
+        aiPreferencesTab: {
+          title: 'تفضيلات AI',
+          description: 'ادخل هنا إلى تفضيلات AI لتكوين التفكير والبحث في قاعدة المعرفة والتنفيذ التلقائي.'
+        },
+        aiPreferencesContent: {
+          title: 'محتوى تفضيلات AI',
+          description: 'هنا تتحكم في التفكير الموسع والتنفيذ التلقائي لأوامر الاستعلام والبحث المعرفي وتراكم الخبرة والوكيل.'
+        },
+        aiAutoApproval: {
+          title: 'تفعيل التنفيذ التلقائي',
+          description: 'انقر هذا المفتاح لتفعيل التنفيذ التلقائي. بعد التفعيل، يمكن لـ AI تنفيذ الأدوات المسموحة دون تأكيد كل مرة.'
+        }
+      },
+      addAndConnectHost: {
+        assetsEntry: {
+          title: 'مدخل الأصول',
+          description: 'ادخل أولاً إلى وحدة الأصول لعرض مداخل إدارة المضيفين والمفاتيح.'
+        },
+        hostManagement: {
+          title: 'مدخل إدارة المضيفين',
+          description: 'تُستخدم إدارة المضيفين لإضافة مضيفات SSH وتعديلها واستيرادها والاتصال بها.'
+        },
+        newHost: {
+          title: 'زر مضيف جديد',
+          description: 'بعد النقر على مضيف جديد، يظهر نموذج المضيف في الجهة اليمنى.'
+        },
+        formFields: {
+          title: 'حقول نموذج المضيف الأساسية',
+          description: 'املأ العنوان والمنفذ واسم المستخدم وطريقة المصادقة والمجموعة والوكيل ومعلومات الاتصال الأخرى.'
+        },
+        formSubmit: {
+          title: 'حفظ المضيف',
+          description: 'الحفظ ينشئ تكوين المضيف فقط ولا يحاكي الاتصال.'
+        },
+        connectAsset: {
+          title: 'الاتصال من بطاقة الأصل',
+          description: 'بعد الحفظ، انقر أو انقر نقراً مزدوجاً على بطاقة الأصل لبدء محاولة اتصال حقيقية وإكمال هذه الوحدة.'
+        }
+      },
+      aiChat: {
+        sidebar: {
+          title: 'فتح شريط AI الأيمن',
+          description: 'انقر المدخل أعلى اليمين أو استخدم Command/Ctrl + L؛ كما يمكن لأيقونة AI في شريط الوحدات الأيسر فتحه.'
+        },
+        sidebarOverview: {
+          title: 'الشريط الجانبي AI الأيمن',
+          description: 'هنا توجد محادثة AI الخاصة بسير عمل الطرفية الحالي، وتشمل السجل والرسائل ومدخل السياق والإدخال.'
+        },
+        input: {
+          title: 'مربع إدخال AI',
+          description: 'اكتب هنا هدفك أو سؤالك أو حالة الطرفية التي تريد من AI فحصها.'
+        },
+        modeAgent: {
+          title: 'اختيار وضع Agent',
+          description: 'هذا هو محدد الوضع. القائمة مفتوحة؛ انقر Agent ليعالج AI مهام المضيف بشكل أكثر اكتمالاً.'
+        },
+        modelOpen: {
+          title: 'فتح اختيار النموذج',
+          description: 'انقر هنا لفتح قائمة النماذج.'
+        },
+        modelOption: {
+          title: 'اختيار نموذج',
+          description: 'انقر نموذجاً متاحاً لاستخدامه في طلب AI الحالي.'
+        },
+        contextOpen: {
+          title: 'فتح اختيار السياق',
+          description: 'انقر مدخل إضافة السياق لاختيار المضيف الهدف لهذا الطلب من Agent.'
+        },
+        contextHosts: {
+          title: 'الدخول إلى قائمة المضيفين',
+          description: 'انقر فئة المضيفين لعرض المضيفين المتاحين كأهداف تنفيذ.'
+        },
+        localhost: {
+          title: 'اختيار 127.0.0.1',
+          description: 'اختر المضيف المحلي 127.0.0.1 كهدف لهذا الطلب من Agent.'
+        },
+        send: {
+          title: 'زر الإرسال',
+          description: 'تم ملء مربع الإدخال بعبارة “فحص حالة المضيف”. انقر إرسال لبدء طلب AI حقيقي وإكمال هذه الوحدة.'
+        }
+      }
+    }
+  },
   personal: {
     host: 'إدارة المضيف',
     newHost: 'المضيف الجديد',
@@ -666,9 +866,14 @@ export default {
     pleaseInputPassword: 'الرجاء إدخال كلمة المرور',
     pleaseSelectKeychain: 'الرجاء اختيار مفتاح الأصل',
     pleaseInputAlias: 'مثال: قاعدة بيانات الإنتاج',
-    pleaseSelectGroup: 'الرجاء اختيار المجموعة',
+    pleaseSelectGroup: 'اختر مجموعة أو أنشئ واحدة جديدة',
+    newGroup: 'مجموعة جديدة',
+    newGroupPlaceholder: 'أدخل اسم المجموعة واضغط Enter',
     pleaseSelectSshProxy: 'الرجاء اختيار بروكسي SSH',
     proxyConfig: 'بروكسي SSH',
+    advancedOptions: 'خيارات متقدمة',
+    jumpHost: 'مضيف الانتقال',
+    jumpHostSelect: 'اختر مضيف الانتقال',
     noProxyConfigFound: 'لا يوجد تكوين بروكسي',
     goToProxyConfig: 'الرجاء الذهاب إلى الإعدادات-التبويب-تكوين بروكسي',
     personal: 'الاتصال',
@@ -689,6 +894,7 @@ export default {
     favoriteUpdateError: 'خطأ في تحديث حالة المفضلة',
     defaultGroup: 'الأصول',
     noAssets: 'لا يوجد أصول',
+    emptyAssetsDescription: 'يمكنك إنشاء مضيف يدوياً أو استيراد ملفات جلسات موجودة لبدء الاتصال.',
     hostType: 'ssh',
     personalAsset: 'الأصول الشخصية',
     enterpriseAsset: 'الأصول المؤسسية',
@@ -859,6 +1065,7 @@ export default {
     noMatchingCommands: 'لا يوجد أوامر مطابقة',
     copy: 'نسخ',
     run: 'تشغيل',
+    paste: 'لصق',
     reject: 'رفض',
     approve: 'موافقة',
     addAutoApprove: 'إضافة موافقة مؤقتة',
@@ -884,6 +1091,7 @@ export default {
     searchHistoryPH: 'الرجاء إدخال',
     loading: 'جاري التحميل...',
     loadMore: 'تحميل المزيد',
+    historyLoadHint: 'توجد رسائل أقدم. مرر للأعلى لمتابعة تحميلها.',
     copyToClipboard: 'نسخ إلى الحافظة',
     retry: 'إعادة المحاولة',
     taskCompleted: 'تم إنجاز المهمة',
@@ -1163,8 +1371,8 @@ export default {
     uploadCancel: 'رفع ملغي',
     downloadSkipped: 'تحميل ملغي',
     taskList: 'قائمة التحويل',
-    collapseTransferList: 'طي قائمة التحويل',
-    expandTransferList: 'توسيع قائمة التحويل',
+    collapseTransferList: 'طي قائمة النقل',
+    expandTransferList: 'توسيع قائمة النقل',
     upload: 'رفع',
     copyFileSuccess: 'نسخة ناجحة',
     copyFileFailed: 'نسخة غير ناجحة',
@@ -1186,6 +1394,9 @@ export default {
     delete: 'حذف',
     move: 'نقل',
     copy: 'نسخ',
+    copyAbsolutePath: 'نسخ المسار المطلق',
+    copyAbsolutePathSuccess: 'تم نسخ المسار المطلق',
+    copyAbsolutePathFailed: 'فشل نسخ المسار المطلق',
     more: 'أكثر',
     download: 'تحميل',
     doubleClickToOpen: 'اضغط مرتين للفتح',
@@ -1307,7 +1518,12 @@ export default {
       mfaFailed: 'فشل المصادقة الثنائية',
       multipleUsersDetected: 'تم الكشف عن حسابات مستخدم متعددة, الرجاء الاختيار...',
       connectingWithSelectedAccount: 'يتم الاتصال بالحساب المختار...',
-      userSelectionCanceled: 'تم إلغاء اختيار الحساب'
+      userSelectionCanceled: 'تم إلغاء اختيار الحساب',
+      syncFromJumpServer: 'مزامنة أصول K8s من JumpServer',
+      sourceTag: 'JumpServer',
+      noBastion: 'لا توجد قلعة مكونة، يرجى الإعداد في SSH أولاً',
+      syncSuccess: 'اكتملت المزامنة، تمت إضافة {inserted}، تم تحديث {updated}',
+      syncFailed: 'فشلت المزامنة'
     },
     qizhi: {
       connectingToBastionHost: 'يتم الاتصال بالخادم البعيد...',
@@ -1317,6 +1533,7 @@ export default {
       authenticating: 'يتم المصادقة...',
       connectedToTarget: 'تم الاتصال بالخادم المستهدف بنجاح',
       mfaRequired: 'المصادقة الثنائية مطلوبة, الرجاء إدخال رمز التحقق...',
+      selectingAssetCategory: 'جارٍ اختيار فئة الأصل',
       mfaPrompt: 'الرجاء إدخال كلمة المرور الثانية...',
       mfaFailed: 'فشل المصادقة الثنائية',
       mfaTimeout: 'وقت المصادقة انتهى, الرجاء المحاولة مرة أخرى',
@@ -1405,7 +1622,7 @@ export default {
     milliseconds: 'ملي ثانية'
   },
   mcp: {
-    title: 'الأدوات و MCP',
+    title: 'MCP',
     description: 'إدارة اتصالات الخوادم MCP لتوسيع قدرات الذكاء الاصطناعي',
     serverList: 'الخوادم MCP',
     addServer: 'إضافة الخادم',
@@ -1596,6 +1813,7 @@ export default {
       addCluster: 'إضافة مجموعة',
       clusterAdded: 'تمت إضافة المجموعة بنجاح',
       noClusters: 'لا توجد مجموعات مكونة',
+      localClusters: 'المجموعات المحلية',
       noTerminal: 'لا توجد جلسة طرفية مفتوحة',
       createTerminal: 'إنشاء طرفية',
       selectClusterFirst: 'الرجاء اختيار مجموعة أولاً',
@@ -1647,9 +1865,73 @@ export default {
       active: 'نشط',
       selectClusterToEdit: 'حدد مجموعة لعرض التفاصيل وتعديلها',
       k8sClusterConfig: 'إدارة المجموعات'
+    },
+    jumpserver: {
+      bastionResources: 'موارد القلعة',
+      syncFromJumpServer: 'مزامنة أصول K8s من JumpServer',
+      sourceTag: 'JumpServer',
+      noBastion: 'لا توجد قلعة مكونة، يرجى الإعداد في SSH أولاً',
+      syncSuccess: 'اكتملت المزامنة، تمت إضافة {inserted}، تم تحديث {updated}',
+      syncFailed: 'فشلت المزامنة'
     }
   },
   database: {
+    title: 'قاعدة البيانات',
+    group: 'المجموعة',
+    rootGroup: 'المجموعة الجذرية',
+    newGroup: 'مجموعة جديدة',
+    copyName: 'نسخ الاسم',
+    moveTo: 'نقل إلى',
+    deleteGroup: 'حذف المجموعة',
+    searchPlaceholder: 'البحث في الاتصالات أو الجداول...',
+    newConnection: 'اتصال جديد',
+    newConnectionOf: 'اتصال {dbType} جديد',
+    overview: 'نظرة عامة',
+    overviewLead: 'اختر جدولاً من اليسار؛ انقر نقراً مزدوجاً لفتح مساحة عمل SQL.',
+    overviewTipExplore: 'استعرض المجموعات والاتصالات وكائنات قاعدة البيانات من اليسار.',
+    overviewTipConnection: 'انقر زر الإضافة في أعلى اليمين لإنشاء اتصال جديد.',
+    overviewTipQuery: 'انقر نقراً مزدوجاً على جدول لفتح مساحة SQL وتشغيل الاستعلامات وتنسيقها.',
+    testConnection: 'اختبار الاتصال',
+    testConnectionPassed: 'نجح الاتصال',
+    testConnectionInFlight: 'جارٍ اختبار الاتصال...',
+    fixRequiredFields: 'يرجى ملء الحقول المطلوبة أولاً.',
+    authentication: 'المصادقة',
+    authUserAndPassword: 'اسم المستخدم وكلمة المرور',
+    driver: 'برنامج التشغيل',
+    driverPlaceholder: 'سيتم دعم رفع برامج التشغيل في مرحلة لاحقة.',
+    driverClass: 'اسم الفئة',
+    uploadDriver: 'رفع برنامج التشغيل',
+    sshConfiguration: 'تكوين SSH',
+    sshConfigurationPlaceholder: 'سيتم ربط إعادة استخدام نفق SSH في مرحلة لاحقة.',
+    advancedConfiguration: 'تكوين متقدم',
+    advancedConfigurationPlaceholder: 'موضع مؤقت للوحة المعلمات المتقدمة.',
+    noResults: 'لا توجد نتائج',
+    loading: 'جارٍ التحميل...',
+    firstPage: 'الصفحة الأولى',
+    prevPage: 'الصفحة السابقة',
+    nextPage: 'الصفحة التالية',
+    lastPage: 'الصفحة الأخيرة',
+    refresh: 'تحديث',
+    total: 'الإجمالي',
+    totalTooltip: 'انقر لتحديث إجمالي الصفوف',
+    filterApply: 'تطبيق',
+    filterClear: 'مسح التصفية',
+    filterLikePlaceholder: 'مطابقة تقريبية، Enter للتطبيق',
+    filterLocalSearch: 'بحث محلي {column}',
+    filterAll: 'الكل',
+    sortTooltip: 'انقر لتبديل الفرز: تصاعدي / تنازلي / إلغاء',
+    filterTooltip: 'تصفية العمود',
+    sqlFilterPlaceholder: 'أدخل تعبير SQL لتصفية النتائج (استخدم Ctrl+Space)',
+    wherePlaceholder: "تعبير WHERE يدوي (يتجاوز تصفية الأعمدة)، مثال: id > 100 AND name LIKE '%abc%'",
+    orderByPlaceholder: 'تعبير ORDER BY يدوي (يتجاوز فرز الأعمدة)، مثال: created_at DESC, id ASC',
+    statusResult: 'النتيجة',
+    statusTime: 'الوقت المستغرق',
+    statusRows: 'الصفوف',
+    statusExecutionOk: 'تم التنفيذ بنجاح',
+    rowCount: 'إجمالي {count} صف',
+    run: 'تشغيل',
+    stop: 'إيقاف',
+    settings: 'الإعدادات',
     deleteGroupConfirmTitle: 'حذف المجموعة',
     deleteGroupConfirmContent: 'هل أنت متأكد من حذف المجموعة "{name}"؟ لا يمكن التراجع عن هذا الإجراء.',
     refreshConnected: 'تحديث الجلسات المتصلة',
@@ -1686,6 +1968,23 @@ export default {
     overviewColTime: 'الوقت',
     noExecutionsYet: 'لا توجد عمليات تنفيذ بعد.',
     closeResultTab: 'إغلاق علامة تبويب النتيجة',
+    fields: {
+      name: 'الاسم',
+      env: 'البيئة',
+      dbType: 'نوع قاعدة البيانات',
+      host: 'المضيف',
+      port: 'المنفذ',
+      user: 'المستخدم',
+      password: 'كلمة المرور',
+      database: 'قاعدة البيانات',
+      oracleService: 'اسم الخدمة / PDB',
+      oracleConnectString: 'سلسلة الاتصال',
+      filePath: 'ملف قاعدة البيانات',
+      readonly: 'للقراءة فقط',
+      readonlyHint: 'فتح بدون إذن كتابة',
+      url: 'URL',
+      sslMode: 'وضع SSL'
+    },
     connectionMenu: {
       openConnection: 'فتح الاتصال',
       closeConnection: 'إغلاق الاتصال',
@@ -1772,11 +2071,14 @@ export default {
       statusDone: 'مكتمل',
       statusError: 'خطأ',
       statusCancelled: 'ملغى',
+      diagnosing: 'جارٍ التحليل بالذكاء الاصطناعي...',
+      diagnosedAndReplaced: 'تم إصلاح SQL واستبداله',
       actionExplain: 'شرح',
       actionNl2Sql: 'NL إلى SQL',
       actionOptimize: 'تحسين',
       actionConvert: 'تحويل اللهجة',
       actionComplete: 'إكمال تلقائي',
+      actionDiagnose: 'إصلاح بالذكاء الاصطناعي',
       nl2SqlPrompt: {
         title: 'إنشاء SQL من سؤال',
         hint: 'صف بلغة طبيعية ما تريد الاستعلام عنه. سيتم استخدام الاتصال الحالي ومخطط قاعدة البيانات كسياق.',

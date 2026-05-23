@@ -40,3 +40,4 @@ coverage/
 **/__screenshots__/
 .claude/settings.local.json
 backups/
+electron.vite.config.*.mjs

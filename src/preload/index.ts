@@ -309,9 +309,11 @@ const createAsset = async (data: { form: Record<string, unknown> }) => {
 
 interface DbAssetPayload {
   name: string
-  db_type: 'mysql' | 'postgresql'
-  host: string
-  port: number
+  db_type: 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
+  host?: string | null
+  port?: number | null
+  file_path?: string | null
+  connection_mode?: 'readwrite' | 'readonly' | null
   group_id?: string | null
   username?: string | null
   password?: string | null
@@ -320,6 +322,7 @@ interface DbAssetPayload {
   environment?: string | null
   group_name?: string | null
   ssl_mode?: string | null
+  jdbc_url?: string | null
   options_json?: string | null
   tags_json?: string | null
   sort_order?: number
@@ -1481,6 +1484,41 @@ const api = {
     return ipcRenderer.invoke('plugins.details', pluginName)
   },
 
+  downloadPluginPackage(url: string) {
+    return ipcRenderer.invoke('plugin:downloadPackage', { url })
+  },
+
+  installPluginFromUrl(payload: { pluginId: string; version?: string; fileName?: string; url: string; sha256?: string }) {
+    return ipcRenderer.invoke('plugin:installFromUrl', payload)
+  },
+
+  cancelPluginInstall(pluginId: string) {
+    return ipcRenderer.invoke('plugin:cancelInstall', { pluginId })
+  },
+
+  onPluginInstallProgress(
+    callback: (payload: {
+      pluginId: string
+      stage: 'downloading' | 'verifying' | 'installing' | 'done' | 'error' | 'cancelled'
+      receivedBytes?: number
+      totalBytes?: number
+      percent?: number
+    }) => void
+  ) {
+    const listener = (
+      _event: any,
+      payload: {
+        pluginId: string
+        stage: 'downloading' | 'verifying' | 'installing' | 'done' | 'error' | 'cancelled'
+        receivedBytes?: number
+        totalBytes?: number
+        percent?: number
+      }
+    ) => callback(payload)
+    ipcRenderer.on('plugin:install-progress', listener)
+    return () => ipcRenderer.removeListener('plugin:install-progress', listener)
+  },
+
   installPluginFromBuffer(payload: { pluginId: string; version?: string; fileName?: string; data: ArrayBuffer }) {
     return ipcRenderer.invoke('plugin:installFromBuffer', payload)
   },
@@ -1661,8 +1699,17 @@ const api = {
   // K8S Agent API
   // ============================================================================
 
-  k8sAgentSetCluster: (params: { clusterId: string; contextName: string; kubeconfigPath?: string; kubeconfigContent?: string }) =>
-    ipcRenderer.invoke('k8s:agent:set-cluster', params),
+  k8sAgentSetCluster: (params: {
+    clusterId: string
+    contextName: string
+    kubeconfigPath?: string
+    kubeconfigContent?: string
+    sourceType?: string
+    bastionUuid?: string
+    bastionAssetAddress?: string
+    bastionAssetName?: string
+    bastionAssetIdLast?: number | null
+  }) => ipcRenderer.invoke('k8s:agent:set-cluster', params),
 
   k8sAgentSetProxy: (
     proxyConfig: {
@@ -1697,6 +1744,8 @@ const api = {
   k8sAgentGetCurrentCluster: () => ipcRenderer.invoke('k8s:agent:get-current-cluster'),
 
   k8sAgentCleanup: () => ipcRenderer.invoke('k8s:agent:cleanup'),
+
+  k8sJumpserverSyncAssets: (params: { bastionUuid: string }) => ipcRenderer.invoke('k8s:jumpserver:sync-assets', params),
 
   // ============================================================================
   // Interactive Command Execution API
@@ -1790,7 +1839,17 @@ const api = {
   /**
    * Open the log directory in the system file manager
    */
-  openLogDir: () => ipcRenderer.invoke('logging:openDir')
+  openLogDir: () => ipcRenderer.invoke('logging:openDir'),
+
+  /**
+   * Listen for auth token expiry notifications from main process.
+   * Returns an unsubscribe function.
+   */
+  onTokenExpired: (callback: () => void): (() => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('auth:token-expired', listener)
+    return () => ipcRenderer.removeListener('auth:token-expired', listener)
+  }
 }
 // Custom API for browser control
 

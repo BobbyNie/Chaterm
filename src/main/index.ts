@@ -22,7 +22,7 @@ import path, { join } from 'path'
 import { electronApp } from '@electron-toolkit/utils'
 import { is } from '@electron-toolkit/utils'
 import * as fs from 'fs/promises'
-import { startDataSync } from './storage/data_sync/index'
+import { startDataSync, AuthExpiredError } from './storage/data_sync/index'
 import type { SyncController as DataSyncController } from './storage/data_sync/core/SyncController'
 import { getChatermDbPathForUser, getCurrentUserId, setMainWindowWebContents } from './storage/db/connection'
 import { migrateCnUserDataOnFirstLaunch } from './storage/editionDataMigration'
@@ -54,8 +54,10 @@ import { setupPluginIpc } from './plugin/pluginIpc'
 import { telemetryService, checkIsFirstLaunch, getMacAddress } from './agent/services/telemetry/TelemetryService'
 import { envelopeEncryptionService } from './storage/data_sync/envelope_encryption/service'
 import { versionPromptService } from './version/versionPromptService'
+import { authFailureNotifier } from './services/authFailureNotifier'
 
 import * as fsSync from 'fs'
+import { createHash } from 'crypto'
 import { pathToFileURL } from 'url'
 import { loadAllPlugins } from './plugin/pluginLoader'
 import {
@@ -84,6 +86,14 @@ import { initLogging, logRendererCrash } from '@logging'
 import { parseXshellWakeupFromArgv, redactXshellWakeupForLog, type XshellWakeupPayload } from './integrations/xshellWakeup'
 
 const logger = createLogger('main')
+
+const getPluginUninstallErrorCode = (error: unknown): string => {
+  const message = String(error instanceof Error ? error.message : error || '')
+  if (/EPERM|EACCES|Permission denied/i.test(message)) {
+    return 'PLUGIN_UNINSTALL_DIRECTORY_BUSY'
+  }
+  return 'PLUGIN_UNINSTALL_FAILED'
+}
 
 type PreinstalledPluginConfig = {
   id: string
@@ -1149,6 +1159,7 @@ function setupIPC(): void {
         if (ctmToken && ctmToken !== 'guest_token') {
           logger.info(`Setting authentication info for user ${targetUserId}...`)
           envelopeEncryptionService.setAuthInfo(ctmToken, targetUserId.toString())
+          authFailureNotifier.reset()
           logger.info(`Authentication info set completed for user ${targetUserId}`)
         } else {
           logger.warn(`No valid authentication token found for user ${targetUserId}`)
@@ -1559,19 +1570,38 @@ function setupIPC(): void {
       const resolvedEnabled = dataSyncPolicyEnabled === false ? false : enabled
 
       if (resolvedEnabled) {
+        let authExpiredDuringStartup = false
         if (!dataSyncController) {
           const dbPath = getChatermDbPathForUser(uid)
           logger.info(`Starting data sync service for user ${uid}...`)
-          const instance = await startDataSync(dbPath)
-          dataSyncController = instance
+          try {
+            const instance = await startDataSync(dbPath, () => {
+              authFailureNotifier.notify()
+            })
+            dataSyncController = instance
+          } catch (e) {
+            if (e instanceof AuthExpiredError) {
+              authExpiredDuringStartup = true
+              logger.warn('Data sync startup aborted due to auth expiry; dataSyncController remains null')
+              // onAuthFailure already sent auth:token-expired to renderer
+            } else {
+              throw e
+            }
+          }
         }
 
-        // Enable sync
-        const syncStateManager = dataSyncController.getSyncStateManager()
-        if (syncStateManager) {
-          syncStateManager.enableSync(uid)
+        // Enable sync only if controller was successfully created
+        if (dataSyncController) {
+          const syncStateManager = dataSyncController.getSyncStateManager()
+          if (syncStateManager) {
+            syncStateManager.enableSync(uid)
+          }
+          startKbSync()
         }
-        startKbSync()
+
+        if (authExpiredDuringStartup) {
+          return { success: false, enabled: false, error: 'AUTH_EXPIRED', authExpired: true }
+        }
       } else {
         // Disable sync
         if (dataSyncController) {
@@ -1706,7 +1736,8 @@ function setupIPC(): void {
               return chatermAuthAdapter.getAuthToken()
             },
             deviceId,
-            platform: 'desktop'
+            platform: 'desktop',
+            onAuthFailure: () => authFailureNotifier.notify()
           })
 
           // Initialize the sync engine
@@ -2987,6 +3018,142 @@ ipcMain.handle('plugins.install', async (_event, pluginFilePath: string) => {
   return record
 })
 
+const pluginInstallAbortControllers = new Map<string, AbortController>()
+
+async function installStorePluginFromBuffer(payload: { pluginId: string; version?: string; fileName?: string; data: ArrayBuffer }) {
+  const { pluginId, version, fileName, data } = payload
+  const installedPlugin = getInstalledPlugin(pluginId)
+
+  try {
+    await uninstallPlugin(pluginId, { force: true })
+  } catch (e) {
+    logger.warn('uninstall before update failed, continue install', { value: e })
+  }
+
+  const baseDir = path.join(getPluginCacheRoot(), pluginId, version || 'latest')
+  await fsSync.promises.mkdir(baseDir, { recursive: true })
+
+  const finalFileName = fileName || `${pluginId}-${version || 'latest'}.chaterm`
+  const tmpFilePath = path.join(baseDir, finalFileName)
+
+  const buffer = Buffer.from(data)
+  await fsSync.promises.writeFile(tmpFilePath, buffer)
+
+  const record = installPlugin(tmpFilePath, {
+    source: installedPlugin?.source || 'store',
+    required: installedPlugin?.required === true
+  })
+  await loadAllPlugins()
+  return record
+}
+
+ipcMain.handle('plugin:downloadPackage', async (_event, payload: { url: string }) => {
+  const url = String(payload?.url || '').trim()
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error('invalid plugin download url')
+  }
+
+  const response = await net.fetch(url)
+  if (!response.ok) {
+    throw new Error(`plugin package download failed: HTTP ${response.status}`)
+  }
+  return await response.arrayBuffer()
+})
+
+ipcMain.handle(
+  'plugin:installFromUrl',
+  async (event, payload: { pluginId: string; version?: string; fileName?: string; url: string; sha256?: string }) => {
+    const url = String(payload?.url || '').trim()
+    if (!/^https?:\/\//i.test(url)) {
+      throw new Error('invalid plugin download url')
+    }
+
+    const sendStage = (
+      stage: 'downloading' | 'verifying' | 'installing' | 'done' | 'error' | 'cancelled',
+      progress?: { receivedBytes?: number; totalBytes?: number; percent?: number }
+    ) => {
+      event.sender.send('plugin:install-progress', { pluginId: payload.pluginId, stage, ...progress })
+    }
+
+    const abortController = new AbortController()
+    pluginInstallAbortControllers.set(payload.pluginId, abortController)
+
+    try {
+      sendStage('downloading')
+      const response = await net.fetch(url, { signal: abortController.signal })
+      if (!response.ok) {
+        throw new Error(`plugin package download failed: HTTP ${response.status}`)
+      }
+
+      const totalBytes = Number(response.headers.get('content-length') || 0)
+      const reader = response.body?.getReader()
+      let data: ArrayBuffer
+      if (reader) {
+        const chunks: Uint8Array[] = []
+        let receivedBytes = 0
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (!value) continue
+          chunks.push(value)
+          receivedBytes += value.byteLength
+          const percent = totalBytes > 0 ? Math.min(100, Math.round((receivedBytes / totalBytes) * 100)) : 0
+          sendStage('downloading', { receivedBytes, totalBytes, percent })
+        }
+        const buffer = Buffer.concat(
+          chunks.map((chunk) => Buffer.from(chunk)),
+          receivedBytes
+        )
+        data = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
+      } else {
+        data = await response.arrayBuffer()
+        const receivedBytes = data.byteLength
+        sendStage('downloading', { receivedBytes, totalBytes: totalBytes || receivedBytes, percent: 100 })
+      }
+      const expectedSha256 = String(payload?.sha256 || '').trim()
+      if (expectedSha256) {
+        sendStage('verifying')
+        const actualSha256 = createHash('sha256').update(Buffer.from(data)).digest('hex')
+        if (actualSha256.toLowerCase() !== expectedSha256.toLowerCase()) {
+          throw new Error('Plugin package checksum mismatch')
+        }
+      }
+
+      sendStage('installing')
+      const record = await installStorePluginFromBuffer({
+        pluginId: payload.pluginId,
+        version: payload.version,
+        fileName: payload.fileName,
+        data
+      })
+      sendStage('done')
+      return record
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        sendStage('cancelled')
+        throw new Error('plugin install cancelled')
+      }
+      sendStage('error')
+      throw error
+    } finally {
+      if (pluginInstallAbortControllers.get(payload.pluginId) === abortController) {
+        pluginInstallAbortControllers.delete(payload.pluginId)
+      }
+    }
+  }
+)
+
+ipcMain.handle('plugin:cancelInstall', async (_event, payload: { pluginId: string }) => {
+  const pluginId = String(payload?.pluginId || '').trim()
+  const controller = pluginInstallAbortControllers.get(pluginId)
+  if (!controller) {
+    return { ok: false }
+  }
+  controller.abort()
+  pluginInstallAbortControllers.delete(pluginId)
+  return { ok: true }
+})
+
 ipcMain.handle(
   'plugin:installFromBuffer',
   async (
@@ -2998,40 +3165,23 @@ ipcMain.handle(
       data: ArrayBuffer
     }
   ) => {
-    const { pluginId, version, fileName, data } = payload
-    const installedPlugin = getInstalledPlugin(pluginId)
-
-    // Uninstall the old version
-    try {
-      await uninstallPlugin(pluginId, { force: true })
-    } catch (e) {
-      logger.warn('uninstall before update failed, continue install', { value: e })
-    }
-
-    // cache dir
-    const baseDir = path.join(getPluginCacheRoot(), pluginId, version || 'latest')
-    await fsSync.promises.mkdir(baseDir, { recursive: true })
-
-    const finalFileName = fileName || `${pluginId}-${version || 'latest'}.chaterm`
-    const tmpFilePath = path.join(baseDir, finalFileName)
-
-    // write
-    const buffer = Buffer.from(data) // ArrayBuffer -> Buffer
-    await fsSync.promises.writeFile(tmpFilePath, buffer)
-
-    const record = installPlugin(tmpFilePath, {
-      source: installedPlugin?.source || 'store',
-      required: installedPlugin?.required === true
-    })
-    await loadAllPlugins()
-    return record
+    return installStorePluginFromBuffer(payload)
   }
 )
 
 ipcMain.handle('plugins.uninstall', async (_event, pluginId: string) => {
-  uninstallPlugin(pluginId)
-  await loadAllPlugins()
-  return { ok: true }
+  try {
+    uninstallPlugin(pluginId)
+    await loadAllPlugins()
+    return { ok: true }
+  } catch (error) {
+    logger.error('Plugin uninstall failed', {
+      event: 'plugin.uninstall.ipc.error',
+      pluginId,
+      error
+    })
+    throw new Error(getPluginUninstallErrorCode(error))
+  }
 })
 
 ipcMain.handle('plugins.reload', async () => {

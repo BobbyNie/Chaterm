@@ -2,22 +2,58 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
-      "version": "2026.05.13",
-      "date": "2026-05-13",
+      "version": "2026.05.23",
+      "date": "2026-05-23",
       "highlights": {
         "zh-CN": [
-          "Sync upstream v0.11.0: Database AI assistant with natural language to SQL, SQL explanation and optimization",
-          "Sync upstream: Database tooling expansion with schema inspection, query execution, index suggestions",
-          "Sync upstream: Database workspace UX upgrades with workspace-aware task filtering",
-          "Sync upstream: Terminal auto-scroll logic for improved user experience",
-          "Sync upstream: Multiple dependency updates including vue 3.5.34, @vueuse/core 14.3.0, dompurify 3.4.2"
+          "同步上游 v0.11.2：新增交互式新手引导系统",
+          "同步上游：SSH 跳板机支持与 Kubernetes 集群管理增强",
+          "同步上游：本地工作区新增 SQLite 与 Oracle 数据库支持",
+          "同步上游：文件复制绝对路径、分组选择与插件下载流程优化",
+          "同步上游：系统语言选项、MCP 配置与快捷键设置 UI 改进"
         ],
         "en-US": [
-          "Synced upstream v0.11.0: Database AI assistant with natural language to SQL, SQL explanation and optimization",
-          "Synced upstream: Database tooling expansion with schema inspection, query execution, index suggestions",
-          "Synced upstream: Database workspace UX upgrades with workspace-aware task filtering",
-          "Synced upstream: Terminal auto-scroll logic for improved user experience",
-          "Synced upstream: Multiple dependency updates including vue 3.5.34, @vueuse/core 14.3.0, dompurify 3.4.2"
+          "Synced upstream v0.11.2: added interactive onboarding guide system",
+          "Synced upstream: SSH jump host support and improved Kubernetes cluster management",
+          "Synced upstream: SQLite and Oracle support for local database workspaces",
+          "Synced upstream: copy absolute path, group selection, and plugin download flow improvements",
+          "Synced upstream: system language option, MCP config and shortcut settings UI enhancements"
+        ]
+      }
+    },
+    {
+      "version": "0.11.2",
+      "date": "2026-05-22",
+      "highlights": {
+        "zh-CN": [
+          "新增交互式新手引导系统",
+          "连接能力扩展：新增 SSH 跳板机支持，并增强 Kubernetes 集群管理流程，复杂网络环境下连接更顺畅",
+          "数据库能力增强：本地工作区新增 SQLite 与 Oracle 支持，并统一 DB-AI 方言校验与图标展示，数据库使用体验更一致",
+          "文件与分组体验优化：新增复制文件绝对路径功能，并完善多语言分组选择与新建分组提示，常见操作更高效",
+          "MCP和快捷键设置UI显示优化"
+        ],
+        "en-US": [
+          "Added an interactive onboarding guide system",
+          "Connection capabilities expanded: added SSH jump host support and improved Kubernetes cluster management workflows for smoother connectivity in complex network environments",
+          "Database support enhanced: added SQLite and Oracle support for local workspaces, and unified DB-AI dialect validation and icon presentation for a more consistent database experience",
+          "File and grouping UX improved: added copy-absolute-path support for files and refined multilingual prompts for group selection and group creation to streamline common actions",
+          "MCP and shortcut settings UI display optimization"
+        ]
+      }
+    },
+    {
+      "version": "0.11.1",
+      "date": "2026-05-19",
+      "highlights": {
+        "zh-CN": [
+          "工作区交互升级：新增节点右键上下文菜单，并优化树节点悬停、选中态与布局对齐，主机管理操作更直观",
+          "用户信息体验增强：用户菜单新增头像与会员状态展示，账户状态查看更清晰",
+          "终端与数据库流程优化：支持终端全选快捷键并保留选择状态，改进终端自动滚动与 AI SQL 报错诊断提示，同时修复组织资产 ID 变更后最近连接可能认证失败的问题"
+        ],
+        "en-US": [
+          "Workspace interaction upgrades: added right-click context menus for nodes and improved tree node hover, selection states, and layout alignment for more intuitive host management",
+          "User info UX enhancements: the user menu now shows avatar and VIP status to view account status more clearly",
+          "Terminal and database workflow improvements: added terminal select-all shortcuts with preserved selection state, refined terminal auto-scroll and AI SQL error diagnosis feedback, and fixed recent connection authentication failures after organization asset ID changes"
         ]
       }
     },

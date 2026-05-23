@@ -80,6 +80,7 @@
                 <a-button
                   type="primary"
                   class="configure-model-button"
+                  data-onboarding-id="ai-model-settings-button"
                   @click="goToModelSettings"
                 >
                   {{ $t('user.configureModel') }}
@@ -922,7 +923,7 @@ interface Props {
     assetId?: string
     databaseName?: string
     schemaName?: string
-    dbType?: 'mysql' | 'postgresql'
+    dbType?: 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
   }
   /** Database tree for ConnectionPicker / DatabasePicker / SchemaPicker options. */
   dbTree?: DatabaseTreeNode[]
@@ -1157,7 +1158,7 @@ interface ContextTruncationNoticeMessage {
 }
 
 interface DbQueryResultView {
-  engine: 'mysql' | 'postgresql'
+  engine: 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
   executedSql: string
   columns: string[]
   rows: Array<Record<string, unknown>>

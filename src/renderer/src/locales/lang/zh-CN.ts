@@ -26,6 +26,7 @@ export default {
     userConfig: '设置',
     alias: 'Alias配置',
     assetConfig: '主机管理',
+    onboardingGuide: '入门引导',
     search: '搜索',
     connect: '连接',
     edit: '编辑',
@@ -130,7 +131,9 @@ export default {
     run: '执行',
     jumpserverSupportPlugin: 'Jumpserver Support',
     noSearchResults: '无搜索结果',
-    database: '数据库'
+    database: '数据库',
+    previous: '上一页',
+    next: '下一页'
   },
   term: {
     welcome: '欢迎使用 Chaterm',
@@ -262,7 +265,10 @@ export default {
     watermarkDescribe: '在终端上显示水印',
     watermarkOpen: '开启',
     watermarkClose: '关闭',
+    onboardingGuide: '入门引导',
+    openOnboardingGuide: '打开入门引导',
     language: '语言',
+    languageSystem: '跟随系统',
     theme: '主题',
     themeDark: '暗色',
     themeLight: '亮色',
@@ -556,7 +562,9 @@ export default {
     unableToGetFilePath: '无法获取文件路径',
     formatError: '格式错误',
     onDropTip: '请拖入后缀为 .chaterm 的插件安装包',
-    installing: '正在安装插件...',
+    installing: '安装中.',
+    verifying: '校验中.',
+    downloading: '下载中.',
     waitForInstall: '正在解压并配置插件环境，请稍候...',
     installSuccess: '插件安装成功',
     initSuccess: '插件已成功安装并加载',
@@ -583,6 +591,7 @@ export default {
     uninstalling: '正在卸载',
     uninstall: '卸载',
     uninstallError: '卸载过程中发生错误',
+    uninstallDirectoryBusy: '插件目录正在被占用，无法卸载，请稍候或重启 Chaterm 后再试。',
     install: '安装',
     subscribe: '订阅',
     update: '更新',
@@ -652,6 +661,176 @@ export default {
       toggleLayout: '切换布局（Terminal/Agents）'
     }
   },
+  onboarding: {
+    guide: {
+      title: '从一个模块开始熟悉 Chaterm',
+      description: '选择模块后会自动打开对应页面，并高亮展示关键区域。引导过程中，非高亮区域将暂时不可操作，当前高亮区域仍可点击。',
+      progress: '已完成 {completed}/{total}'
+    },
+    modules: {
+      interfaceGuide: {
+        title: '界面引导',
+        description: '了解左侧模块、功能面板、工作区 Tab、顶部布局控制和 AI 入口。'
+      },
+      systemSettings: {
+        title: '系统设置',
+        description: '熟悉通用设置、主题语言、默认布局，以及终端字体、代理和 SSH Agent 设置。'
+      },
+      addAndConnectHost: {
+        title: '添加并连接主机',
+        description: '创建一台主机并通过点击或双击资产卡片发起真实连接。'
+      },
+      aiChat: {
+        title: '使用 AI 对话',
+        description: '打开右侧 AI 栏，选择 Agent、模型和本地主机，并发起一次真实 AI 请求。'
+      }
+    },
+    spotlight: {
+      previous: '上一步',
+      next: '下一步',
+      finish: '完成',
+      progress: '{current}/{total}',
+      targetMissing: '当前目标暂时不可见。请先完成前置操作，或点击下一步继续。'
+    },
+    tours: {
+      interfaceGuide: {
+        moduleSwitcher: {
+          title: '左侧模块切换栏',
+          description: '这里切换工作空间、资产、文件、知识库等核心模块。'
+        },
+        functionPanel: {
+          title: '左侧功能面板',
+          description: '选中模块后，相关列表、搜索和管理入口会显示在这里。'
+        },
+        workspace: {
+          title: '主工作区 Tab',
+          description: '终端、设置、资产管理和编辑器都会作为 Tab 在主工作区打开。'
+        },
+        topControls: {
+          title: '顶部窗口与布局控制',
+          description: '顶部区域用于切换 Terminal/Agents 布局，并控制左右侧栏显示。'
+        },
+        aiToggle: {
+          title: '右侧 AI 对话入口',
+          description: '点击这里，或使用 Command/Ctrl + L，打开终端右侧的 AI 对话栏。'
+        },
+        aiSidebar: {
+          title: '右侧 AI 侧边栏',
+          description: '这里是终端右侧的 AI 工作区，包含对话列表、消息区域、上下文入口和底部输入控制。'
+        }
+      },
+      systemSettings: {
+        settingEntry: {
+          title: '设置入口',
+          description: '点击左下角齿轮、点击下一步，或使用 Command/Ctrl + , 打开系统设置 Tab。'
+        },
+        sideNav: {
+          title: '设置分类导航',
+          description: '左侧分类用于切换通用、终端、扩展、模型等设置页面。'
+        },
+        general: {
+          title: '通用设置内容',
+          description: '通用页集中管理外观、语言、默认布局、背景和常用偏好。'
+        },
+        background: {
+          title: '背景设置',
+          description: '可以选择预置背景图，也可以上传自定义图片，并调整透明度和亮度。'
+        },
+        backgroundPreset: {
+          title: '选择一个背景',
+          description: '点击被高亮的背景缩略图继续。'
+        },
+        terminalTab: {
+          title: '终端设置分类',
+          description: '点击终端分类，进入终端显示、输入和连接相关选项。'
+        },
+        terminalOptions: {
+          title: '终端字体、代理与 SSH Agent',
+          description: '这里可以调整字体字号、代理配置和 SSH Agent 行为。'
+        },
+        aiPreferencesTab: {
+          title: 'AI 偏好设置',
+          description: '点击这里进入 AI 偏好设置，配置推理、知识库检索和自动执行行为。'
+        },
+        aiPreferencesContent: {
+          title: 'AI 偏好内容',
+          description: '这里可以控制扩展思考、查询类命令自动执行、知识库检索、经验沉淀和代理等 AI 行为。'
+        },
+        aiAutoApproval: {
+          title: '开启自动执行',
+          description: '点击这个开关开启自动执行。开启后，AI 可在无需逐次确认的情况下执行允许的工具。'
+        }
+      },
+      addAndConnectHost: {
+        assetsEntry: {
+          title: '资产入口',
+          description: '先进入资产模块，查看主机与密钥管理入口。'
+        },
+        hostManagement: {
+          title: '主机管理入口',
+          description: '主机管理用于新增、编辑、导入和连接 SSH 主机。'
+        },
+        newHost: {
+          title: '新建主机按钮',
+          description: '点击新建主机后，右侧会展开主机表单。'
+        },
+        formFields: {
+          title: '主机表单关键字段',
+          description: '填写地址、端口、用户名、认证方式、分组和代理等连接信息。'
+        },
+        formSubmit: {
+          title: '保存主机',
+          description: '保存只会创建主机配置，不会伪造连接。'
+        },
+        connectAsset: {
+          title: '从资产卡片发起连接',
+          description: '保存成功后，点击或双击资产卡片发起真实连接尝试，完成本模块。'
+        }
+      },
+      aiChat: {
+        sidebar: {
+          title: '打开右侧 AI 栏',
+          description: '点击右上角入口，或使用 Command/Ctrl + L 打开右侧 AI 栏；左侧模块切换栏的 AI 图标也能打开它。'
+        },
+        sidebarOverview: {
+          title: '右侧 AI 侧边栏',
+          description: '这里承载当前终端工作流里的 AI 对话，包含历史、消息区域、上下文入口和底部输入控制。'
+        },
+        input: {
+          title: 'AI 输入框',
+          description: '输入框用于描述你的目标、问题或需要 AI 检查的终端状态。'
+        },
+        modeAgent: {
+          title: '选择 Agent 模式',
+          description: '这里是模式选择框。下拉已展开，点击 Agent，让 AI 按主机任务执行更完整的排查。'
+        },
+        modelOpen: {
+          title: '点开模型选择',
+          description: '点击这里展开模型列表。'
+        },
+        modelOption: {
+          title: '选择一个模型',
+          description: '点击可用模型，作为这次 AI 请求的调用模型。'
+        },
+        contextOpen: {
+          title: '点开上下文选择',
+          description: '点击添加上下文入口，准备选择本次 Agent 请求的目标主机。'
+        },
+        contextHosts: {
+          title: '进入主机列表',
+          description: '点击主机分类，查看可以作为执行目标的主机。'
+        },
+        localhost: {
+          title: '选择 127.0.0.1',
+          description: '点击本地主机 127.0.0.1，作为这次 Agent 请求的目标。'
+        },
+        send: {
+          title: '发送按钮',
+          description: '输入框已填入“查看主机状态”。点击发送按钮发起真实 AI 请求并完成本模块。'
+        }
+      }
+    }
+  },
   personal: {
     host: '主机管理',
     newHost: '添加主机',
@@ -675,9 +854,14 @@ export default {
     pleaseInputPassword: '请输入密码',
     pleaseSelectKeychain: '请选择密钥',
     pleaseInputAlias: '如 生产数据库',
-    pleaseSelectGroup: '请选择分组',
+    pleaseSelectGroup: '选择或新建分组',
+    newGroup: '新建分组',
+    newGroupPlaceholder: '输入分组名后回车',
     pleaseSelectSshProxy: '请选择SSH代理',
     proxyConfig: 'SSH代理',
+    advancedOptions: '高级选项',
+    jumpHost: '跳板机',
+    jumpHostSelect: '选择跳板机',
     noProxyConfigFound: '暂无代理配置',
     goToProxyConfig: '前往设置-终端-代理配置',
     personal: '直接连接',
@@ -698,6 +882,7 @@ export default {
     favoriteUpdateError: '更新收藏状态出错',
     defaultGroup: '主机',
     noAssets: '暂无资产',
+    emptyAssetsDescription: '可以手动创建主机，或导入已有会话文件后开始连接。',
     hostType: 'ssh',
     personalAsset: '个人',
     enterpriseAsset: '企业',
@@ -1190,11 +1375,14 @@ export default {
     delete: '删除',
     move: '移动',
     copy: '复制',
+    copyAbsolutePath: '复制绝对路径',
+    copyAbsolutePathSuccess: '已复制绝对路径',
+    copyAbsolutePathFailed: '复制绝对路径失败',
     more: '更多',
     download: '下载',
     upload: '上传',
     taskList: '传输列表',
-    collapseTransferList: '折叠传输列表',
+    collapseTransferList: '收起传输列表',
     expandTransferList: '展开传输列表',
     doubleClickToOpen: '双击打开',
     sftpConnectFailed: 'SFTP连接失败',
@@ -1315,7 +1503,12 @@ export default {
       mfaFailed: '双重认证失败',
       multipleUsersDetected: '检测到多个用户账号，请选择...',
       connectingWithSelectedAccount: '正在使用所选账号连接...',
-      userSelectionCanceled: '已取消用户选择'
+      userSelectionCanceled: '已取消用户选择',
+      syncFromJumpServer: '同步 JumpServer K8s 资产',
+      sourceTag: 'JumpServer',
+      noBastion: '暂无堡垒机，请先在 SSH 中配置',
+      syncSuccess: '同步完成，新增 {inserted} 个，更新 {updated} 个',
+      syncFailed: '同步失败'
     },
     qizhi: {
       connectingToBastionHost: '正在连接齐治堡垒机...',
@@ -1412,7 +1605,7 @@ export default {
     milliseconds: '毫秒数'
   },
   mcp: {
-    title: '工具与 MCP',
+    title: 'MCP',
     description: '管理 MCP 服务器连接，扩展 AI 能力',
     serverList: 'MCP 服务器',
     addServer: '添加服务器',
@@ -1603,6 +1796,7 @@ export default {
       addCluster: '添加集群',
       clusterAdded: '集群添加成功',
       noClusters: '暂无配置的集群',
+      localClusters: '本地集群',
       noTerminal: '暂无打开的终端会话',
       createTerminal: '创建终端',
       selectClusterFirst: '请先选择一个集群',
@@ -1654,6 +1848,14 @@ export default {
       active: '活跃',
       selectClusterToEdit: '选择一个集群以查看和编辑详情',
       k8sClusterConfig: '集群管理'
+    },
+    jumpserver: {
+      bastionResources: '堡垒机资源',
+      syncFromJumpServer: '同步 JumpServer K8s 资产',
+      sourceTag: 'JumpServer',
+      noBastion: '暂无堡垒机，请先在 SSH 中配置',
+      syncSuccess: '同步完成，新增 {inserted} 个，更新 {updated} 个',
+      syncFailed: '同步失败'
     }
   },
   database: {
@@ -1760,6 +1962,11 @@ export default {
       user: '用户',
       password: '密码',
       database: '数据库',
+      oracleService: '服务名 / PDB',
+      oracleConnectString: '连接串',
+      filePath: '数据库文件',
+      readonly: '只读',
+      readonlyHint: '以只读模式打开',
       url: 'URL',
       sslMode: 'SSL 模式'
     },
@@ -1847,11 +2054,14 @@ export default {
       statusDone: '已完成',
       statusError: '错误',
       statusCancelled: '已取消',
+      diagnosing: 'AI 分析中...',
+      diagnosedAndReplaced: 'SQL 已修复并替换',
       actionExplain: '解释',
       actionNl2Sql: '自然语言转 SQL',
       actionOptimize: '优化',
       actionConvert: '转换方言',
       actionComplete: '补全',
+      actionDiagnose: 'AI 修复',
       nl2SqlPrompt: {
         title: '根据问题生成 SQL',
         hint: '用自然语言描述你想查询的内容，当前连接和 schema 会作为上下文。',

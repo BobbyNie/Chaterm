@@ -7,26 +7,27 @@
  * Supported database engines for DB-AI single-turn actions (track A).
  * DB ChatBot (track B) uses the same literal union; keep in sync if extended.
  */
-export type DbType = 'mysql' | 'postgresql'
+export type DbType = 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
 
 /**
  * Supported SQL dialects for prompt construction and target-dialect conversion.
- * The current MVP targets PostgreSQL and MySQL only; additional dialects should
- * be appended to this union (never renamed) to preserve IPC payload stability.
+ * The current MVP targets PostgreSQL, MySQL, SQLite, and Oracle; additional dialects
+ * should be appended to this union (never renamed) to preserve IPC payload stability.
  */
-export type SqlDialect = 'mysql' | 'postgresql'
+export type SqlDialect = 'mysql' | 'postgresql' | 'sqlite' | 'oracle'
 
 /**
  * Single-turn DB-AI actions. `chat` is deliberately NOT part of this union:
  * multi-turn conversations go through the Task/Controller pipeline
  * (workspace='database') on track B. See docs/database_ai.md §5.0.
  */
-export type DbAiAction = 'nl2sql' | 'explain' | 'optimize' | 'convert' | 'complete'
+export type DbAiAction = 'nl2sql' | 'explain' | 'optimize' | 'convert' | 'complete' | 'diagnose'
 
 /**
  * Hint describing a table the user or caller explicitly references.
- * `schema` is optional because MySQL sessions typically rely on the current
- * database, whereas PostgreSQL relies on schema + search_path.
+ * `schema` is optional because MySQL and SQLite typically rely on a database
+ * name / attached alias, while PostgreSQL and Oracle typically resolve via
+ * schema context (with engine-specific defaults/search paths).
  */
 export interface DbAiTableHint {
   schema?: string
@@ -60,6 +61,8 @@ export interface DbAiStartInput {
   cursorTextAfter?: string
   targetDialect?: SqlDialect
   hintedTables?: DbAiTableHint[]
+  /** Error message from a failed SQL execution, used by the 'diagnose' action. */
+  errorMessage?: string
 }
 
 /**

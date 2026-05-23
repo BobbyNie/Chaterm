@@ -3,6 +3,7 @@
     <div class="split-layout">
       <div class="left-section">
         <AssetSearch
+          ref="assetSearchRef"
           v-model="searchValue"
           @search="handleSearch"
           @new-asset="openNewPanel"
@@ -19,6 +20,8 @@
           @asset-edit="handleAssetEdit"
           @asset-delete="handleAssetRemove"
           @asset-context-menu="handleAssetContextMenu"
+          @empty-new-asset="openNewPanel"
+          @empty-import-assets="handleEmptyImportAssets"
         />
         <AssetContextMenu
           v-if="contextMenuVisible"
@@ -46,6 +49,8 @@
           :key-chain-options="keyChainOptions"
           :ssh-proxy-configs="sshProxyConfigs"
           :default-groups="defaultGroups"
+          :jump-host-options="jumpHostOptions"
+          :editing-asset-uuid="editingAssetUUID"
           @close="closeForm"
           @submit="handleFormSubmit"
           @add-keychain="addKeychain"
@@ -122,6 +127,7 @@ import AssetForm from '../components/AssetForm.vue'
 import AssetContextMenu from '../components/AssetContextMenu.vue'
 import eventBus from '@/utils/eventBus'
 import i18n from '@/locales'
+import { useOnboardingStore } from '@/store/onboardingStore'
 
 import { handleRefreshOrganizationAssets } from '../components/refreshOrganizationAssets'
 import type { AssetNode, AssetFormData, KeyChainItem, SshProxyConfigItem } from '../utils/types'
@@ -155,11 +161,13 @@ interface ParsedSession {
 }
 
 const { t } = i18n.global
+const onboardingStore = useOnboardingStore()
 
 const isEditMode = ref(false)
 const editingAssetUUID = ref<string | null>(null)
 const isRightSectionVisible = ref(false)
 const searchValue = ref('')
+const assetSearchRef = ref<InstanceType<typeof AssetSearch> | null>(null)
 const assetGroups = ref<AssetNode[]>([])
 const keyChainOptions = ref<KeyChainItem[]>([])
 const sshProxyConfigs = ref<SshProxyConfigItem[]>([])
@@ -167,6 +175,23 @@ const defaultGroups = ref(['development', 'production', 'staging', 'testing', 'd
 const contextMenuVisible = ref(false)
 const contextMenuPosition = reactive({ x: 0, y: 0 })
 const selectedAsset = ref<AssetNode | null>(null)
+
+// Build jump host options: only personal assets (asset_type === 'person') with a real uuid.
+const jumpHostOptions = computed(() => {
+  const opts: { value: string; label: string }[] = []
+  for (const group of assetGroups.value) {
+    for (const child of group.children || []) {
+      if (child.asset_type === 'person' && child.uuid) {
+        const display = child.label || child.title || child.ip || ''
+        opts.push({
+          value: child.uuid,
+          label: `${display} (${child.username || ''}@${child.ip || ''}:${child.port || 22})`
+        })
+      }
+    }
+  }
+  return opts
+})
 import { userConfigStore } from '@/services/userConfigStoreService'
 
 const formData = reactive<AssetFormData>({
@@ -180,7 +205,8 @@ const formData = reactive<AssetFormData>({
   port: 22,
   asset_type: 'person',
   needProxy: false,
-  proxyName: ''
+  proxyName: '',
+  jumpHostUuid: ''
 })
 
 const resetForm = () => {
@@ -195,7 +221,8 @@ const resetForm = () => {
     port: 22,
     asset_type: 'person',
     needProxy: false,
-    proxyName: ''
+    proxyName: '',
+    jumpHostUuid: ''
   })
 }
 
@@ -218,13 +245,28 @@ const handleSearch = () => {
   // Search is handled by computed property in AssetList, so we don't need to do anything here
 }
 
+const handleEmptyImportAssets = () => {
+  assetSearchRef.value?.openImportDialog()
+}
+
+const handleShowAssetImportHelp = () => {
+  assetSearchRef.value?.showImportHelp()
+}
+
 const handleAssetClick = (asset: AssetNode) => {
   logger.info('Asset clicked', { event: 'asset.click', uuid: asset.uuid, title: asset.title })
+  if (onboardingStore.activeTour === 'addAndConnectHost' && onboardingStore.activeStepIndex >= 5) {
+    handleAssetConnect(asset)
+  }
 }
 
 const handleAssetConnect = (asset: AssetNode) => {
   logger.info('Connecting to asset', { event: 'asset.connect', uuid: asset.uuid, title: asset.title })
   eventBus.emit('currentClickServer', asset)
+  if (onboardingStore.activeTour === 'addAndConnectHost') {
+    onboardingStore.markModuleComplete('addAndConnectHost')
+    onboardingStore.stopTour()
+  }
 }
 
 const handleAssetEdit = (asset: AssetNode) => {
@@ -249,7 +291,8 @@ const handleAssetEdit = (asset: AssetNode) => {
     port: asset.port || 22,
     asset_type: asset.asset_type || 'person',
     needProxy: asset.needProxy || false,
-    proxyName: asset.proxyName || ''
+    proxyName: asset.proxyName || '',
+    jumpHostUuid: asset.jumpHostUuid || ''
   })
 
   getAssetGroup()
@@ -283,7 +326,8 @@ const handleAssetClone = (asset: AssetNode) => {
     port: asset.port || 22,
     asset_type: asset.asset_type || 'person',
     needProxy: asset.needProxy || false,
-    proxyName: asset.proxyName || ''
+    proxyName: asset.proxyName || '',
+    jumpHostUuid: asset.jumpHostUuid || ''
   })
 
   getAssetGroup()
@@ -1351,7 +1395,8 @@ const handleCreateAsset = async (data: AssetFormData) => {
       port: data.port,
       asset_type: data.asset_type,
       needProxy: data.needProxy,
-      proxyName: data.proxyName
+      proxyName: data.proxyName,
+      jumpHostUuid: data.jumpHostUuid || ''
     }
 
     const api = window.api as any
@@ -1363,6 +1408,9 @@ const handleCreateAsset = async (data: AssetFormData) => {
       isRightSectionVisible.value = false
       getAssetList()
       eventBus.emit('LocalAssetMenu')
+      if (onboardingStore.activeTour === 'addAndConnectHost') {
+        onboardingStore.setActiveStepIndex(5)
+      }
     } else {
       throw new Error('Failed to create asset')
     }
@@ -1396,7 +1444,8 @@ const handleSaveAsset = async (data: AssetFormData) => {
       port: data.port,
       asset_type: data.asset_type,
       needProxy: data.needProxy,
-      proxyName: data.proxyName
+      proxyName: data.proxyName,
+      jumpHostUuid: data.jumpHostUuid || ''
     }
 
     const api = window.api as any
@@ -1440,6 +1489,8 @@ onMounted(() => {
   eventBus.on('sshProxyConfigsUpdated', () => {
     getProxyConfigData()
   })
+  eventBus.on('onboarding:openAssetCreate', openNewPanel)
+  eventBus.on('onboarding:showAssetImportHelp', handleShowAssetImportHelp)
   // Listen to language change event, reload asset data
   eventBus.on('languageChanged', () => {
     logger.info('Language changed in asset config, refreshing asset list')
@@ -1451,6 +1502,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   eventBus.off('keyChainUpdated')
   eventBus.off('sshProxyConfigsUpdated')
+  eventBus.off('onboarding:openAssetCreate')
+  eventBus.off('onboarding:showAssetImportHelp')
   eventBus.off('languageChanged')
 })
 
