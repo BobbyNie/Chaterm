@@ -156,6 +156,13 @@ describe('LeftTab Menu - Intranet Edition', () => {
       expect(userMenuItem).toBeUndefined()
     })
 
+    it('should not include user menu markup in the component template', () => {
+      const source = require('fs').readFileSync(require('path').resolve(__dirname, '../index.vue'), 'utf-8')
+      const templateSection = source.split('<script')[0]
+      expect(templateSection).not.toMatch(/user-menu/)
+      expect(templateSection).not.toMatch(/user-avatar/)
+    })
+
     it('should not render notice menu item (commented out)', () => {
       // The notice menu is commented out in the source
       const noticeMenuItem = menuTabsData.find((item) => item.key === 'notice')

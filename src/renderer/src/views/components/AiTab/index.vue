@@ -71,7 +71,7 @@
             />
           </div>
           <template v-if="!hasAvailableModels">
-            <div class="ai-login-prompt">
+            <div class="ai-model-prompt">
               <p>{{ $t('user.noAvailableModelMessage') }}</p>
               <p class="ai-prompt-description">
                 {{ $t('user.noAvailableModelDescription') }}

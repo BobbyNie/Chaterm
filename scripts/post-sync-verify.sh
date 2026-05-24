@@ -60,13 +60,13 @@ CHECKS_WARNING=0
 record_result() {
     if [ "$1" = "pass" ]; then
         log_success "$2"
-        ((CHECKS_PASSED++))
+        CHECKS_PASSED=$((CHECKS_PASSED + 1))
     elif [ "$1" = "fail" ]; then
         log_error "$2"
-        ((CHECKS_FAILED++))
+        CHECKS_FAILED=$((CHECKS_FAILED + 1))
     elif [ "$1" = "warn" ]; then
         log_warning "$2"
-        ((CHECKS_WARNING++))
+        CHECKS_WARNING=$((CHECKS_WARNING + 1))
     fi
 }
 
@@ -136,6 +136,31 @@ verify_login_skip() {
     check_file_content "$file" "next('/')" "Login route redirects to home"
 }
 
+# Function to check template section of a Vue file (excludes script/style blocks)
+check_vue_template_not_contains() {
+    local file="$1"
+    local pattern="$2"
+    local description="$3"
+
+    log_check "$description"
+
+    if [ ! -f "$PROJECT_ROOT/$file" ]; then
+        record_result "fail" "File not found: $file"
+        return 1
+    fi
+
+    local template_section
+    template_section=$(sed -n '1,/^<script/p' "$PROJECT_ROOT/$file" | sed '$d')
+
+    if ! echo "$template_section" | grep -q "$pattern"; then
+        record_result "pass" "$description"
+        return 0
+    else
+        record_result "fail" "$description - Pattern should not exist in template: $pattern"
+        return 1
+    fi
+}
+
 # Function to verify user menu removal from LeftTab
 verify_user_menu_removal() {
     print_section "Verifying User Menu Removal from LeftTab"
@@ -143,10 +168,10 @@ verify_user_menu_removal() {
     local file="src/renderer/src/views/components/LeftTab/index.vue"
 
     # Check that user menu is not in template
-    check_file_not_contains "$file" "user-menu" "User menu element removed from template"
+    check_vue_template_not_contains "$file" "user-menu" "User menu element removed from template"
 
-    # Check that user avatar is not present
-    check_file_not_contains "$file" "user-avatar" "User avatar removed from template"
+    # Check that user avatar is not present in template
+    check_vue_template_not_contains "$file" "user-avatar" "User avatar removed from template"
 
     local data_file="src/renderer/src/views/components/LeftTab/constants/data.ts"
 
@@ -174,10 +199,9 @@ verify_ai_tab_changes() {
 
     local file="src/renderer/src/views/components/AiTab/index.vue"
 
-    # Check that login prompt is removed
-    check_file_not_contains "$file" "ai-login-prompt" "Login prompt removed from AI tab"
-
-    # Check that configure model button exists
+    # Check that login/register prompts are not present (configure-model prompt is allowed)
+    check_file_not_contains "$file" "goToLogin" "Login redirect removed from AI tab"
+    check_file_not_contains "$file" "ai-login-prompt" "Legacy login prompt class removed from AI tab"
     check_file_content "$file" "configureModel" "Configure model button exists"
 }
 
@@ -289,7 +313,8 @@ check_merge_conflicts() {
 
     cd "$PROJECT_ROOT"
 
-    local conflict_files=$(git grep -l "<<<<<<< HEAD" 2>/dev/null || true)
+    # Exclude this script itself, which references the conflict marker in its grep pattern
+    local conflict_files=$(git grep -l "<<<<<<< HEAD" -- . ':(exclude)scripts/post-sync-verify.sh' 2>/dev/null || true)
 
     if [ -z "$conflict_files" ]; then
         record_result "pass" "No merge conflict markers found"

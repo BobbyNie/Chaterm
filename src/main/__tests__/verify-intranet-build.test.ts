@@ -342,4 +342,22 @@ describe('CI/CD Build Verification - Intranet Edition', () => {
       expect(workflowContent).toContain('Upload macOS artifacts')
     })
   })
+
+  describe('Upstream sync automation scripts', () => {
+    it('should have non-interactive upstream sync check script', () => {
+      const scriptPath = resolve('scripts/check-upstream-sync.sh')
+      expect(existsSync(scriptPath)).toBe(true)
+      const content = readFileSync(scriptPath, 'utf-8')
+      expect(content).toContain('chaterm/Chaterm')
+      expect(content).toContain('Pending commits')
+    })
+
+    it('should have post-sync verification script without self-detecting conflict markers', () => {
+      const scriptPath = resolve('scripts/post-sync-verify.sh')
+      expect(existsSync(scriptPath)).toBe(true)
+      const content = readFileSync(scriptPath, 'utf-8')
+      expect(content).toContain('exclude)scripts/post-sync-verify.sh')
+      expect(content).toContain('Legacy login prompt class removed from AI tab')
+    })
+  })
 })

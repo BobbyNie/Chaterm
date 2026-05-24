@@ -309,36 +309,6 @@ onUnmounted(() => {
       opacity: 1;
       transform: scale(1.1);
     }
-
-    &.has-avatar img.user-avatar-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      object-fit: cover;
-      opacity: 1;
-      filter: none;
-    }
-  }
-
-  .user-menu-trigger {
-    position: relative;
-
-    .vip-flag {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #ffd700, #ff8f00);
-      color: #000;
-      font-size: 8px;
-      font-weight: bold;
-      line-height: 1;
-      padding: 1px 3px;
-      border-radius: 4px;
-      letter-spacing: 0.4px;
-      pointer-events: none;
-      z-index: 1;
-    }
   }
 }
 </style>
