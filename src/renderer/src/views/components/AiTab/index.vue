@@ -74,7 +74,7 @@
             <div class="ai-model-prompt">
               <p>{{ $t('user.noAvailableModelMessage') }}</p>
               <p class="ai-prompt-description">
-                {{ $t('user.noAvailableModelDescription') }}
+                {{ $t(isGuestUser ? 'user.noAvailableModelDescriptionLoggedIn' : 'user.noAvailableModelDescription') }}
               </p>
               <div class="ai-prompt-buttons">
                 <a-button
@@ -967,6 +967,7 @@ const {
 
 // Model configuration management
 const { hasAvailableModels, initModel, checkModelConfig, initModelOptions, refreshModelOptions } = useModelConfiguration()
+const isGuestUser = computed(() => localStorage.getItem('login-skipped') === 'true')
 
 // State snapshot
 const { getCurrentState, restoreState, emitStateChange } = useStateSnapshot(emit)

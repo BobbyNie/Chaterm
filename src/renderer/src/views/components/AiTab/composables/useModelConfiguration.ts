@@ -496,10 +496,11 @@ export const useModelConfiguration = createGlobalState(() => {
     const availableModels = modelOptions.filter((model) => model.checked)
 
     if (availableModels.length === 0) {
+      const isSkippedLogin = localStorage.getItem('login-skipped') === 'true'
       return {
         success: false,
         message: 'user.noAvailableModelMessage',
-        description: 'user.noAvailableModelDescription'
+        description: isSkippedLogin ? 'user.noAvailableModelDescriptionLoggedIn' : 'user.noAvailableModelDescription'
       }
     }
 
@@ -576,13 +577,10 @@ export const useModelConfiguration = createGlobalState(() => {
       const initialSavedModelOptions = ((await getGlobalState('modelOptions')) || []) as ModelOption[]
       logger.info('savedModelOptions', { data: initialSavedModelOptions })
 
-      // Skip loading built-in models if user skipped login
+      // Intranet/guest users rely on locally configured custom models.
+      // Preserve saved options instead of clearing them on each AI tab mount.
       if (isSkippedLogin) {
-        // Initialize with empty model options for guest users
-        await updateGlobalState('modelOptions', [])
-        await updateGlobalState('enterpriseModelConfigs', [])
-        await updateGlobalState('enterpriseModelConfigVersion', '')
-        await updateGlobalState('enterpriseModelPluginActive', false)
+        logger.info('Guest user model options preserved', { count: initialSavedModelOptions.length })
         clearEnterpriseSyncTimer()
         return
       }

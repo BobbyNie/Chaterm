@@ -241,6 +241,25 @@ describe('useModelConfiguration', () => {
       expect(stateModule.storeSecret).toHaveBeenCalledWith('defaultApiKey', 'test-key')
     })
 
+    it('should preserve saved model options for guest users', async () => {
+      localStorage.setItem('login-skipped', 'true')
+
+      const savedCustomModels = [{ id: 'custom-1', name: 'local-model', checked: true, type: 'custom', apiProvider: 'openai' }]
+      vi.mocked(stateModule.getGlobalState).mockImplementation(async (key) => {
+        if (key === 'modelOptions') return savedCustomModels
+        return null
+      })
+
+      const { initModelOptions } = useModelConfiguration()
+      await initModelOptions()
+
+      expect(getUser).not.toHaveBeenCalled()
+      expect(stateModule.updateGlobalState).not.toHaveBeenCalledWith('modelOptions', [])
+      expect(stateModule.updateGlobalState).not.toHaveBeenCalledWith('modelOptions', expect.any(Array))
+
+      localStorage.removeItem('login-skipped')
+    })
+
     it('should not block model options update on gateway model info fetch', async () => {
       const originalFetch = global.fetch
       global.fetch = vi.fn().mockResolvedValue({
@@ -354,6 +373,23 @@ describe('useModelConfiguration', () => {
       // Verify that the function handles invalid config gracefully
       expect(result).toBeDefined()
       expect(result.success).toBe(false)
+    })
+
+    it('should use logged-in description for guest users without models', async () => {
+      localStorage.setItem('login-skipped', 'true')
+
+      vi.mocked(stateModule.getGlobalState).mockImplementation(async (key) => {
+        if (key === 'modelOptions') return []
+        return null
+      })
+
+      const { checkModelConfig } = useModelConfiguration()
+      const result = await checkModelConfig()
+
+      expect(result.success).toBe(false)
+      expect(result.description).toBe('user.noAvailableModelDescriptionLoggedIn')
+
+      localStorage.removeItem('login-skipped')
     })
   })
 
