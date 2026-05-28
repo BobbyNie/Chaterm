@@ -17,6 +17,7 @@ export default {
     keychain: 'Schlüsselbund',
     extensions: 'Erweiterungen',
     ai: 'AI',
+    knowledge: 'Wissensdatenbank',
     user: 'Benutzer',
     setting: 'Einstellung',
     notice: 'Hinweis',
@@ -256,6 +257,8 @@ export default {
     cursorStyleBlock: 'Block',
     cursorStyleBar: 'Bar',
     cursorStyleUnderline: 'Unterstreichung',
+    cursorBlink: 'Cursor-Blinken',
+    lineHeight: 'Zeilenhöhe',
     mouseEvent: 'Maus-Ereignis',
     middleMouseEvent: 'Mittlere Maus-Ereignis',
     rightMouseEvent: 'Rechte Maus-Ereignis',
@@ -416,6 +419,9 @@ export default {
     autoApprovalDescribe: 'Erlauben Sie dem Agenten, Tools ohne Bestätigung auszuführen',
     autoExecuteReadOnlyCommands: 'Nur-Lese-Befehle automatisch ausführen',
     autoExecuteReadOnlyCommandsDescribe: 'Nur-Lese-Befehle (z.B. ls, cat, grep) in allen Sitzungen werden ohne Bestätigung automatisch ausgeführt',
+    commandOutputFilteringEnabled: 'Befehlsausgabe filtern',
+    commandOutputFilteringEnabledDescribe:
+      'Verwendet rtk, um Ergebnisse ausgeführter Befehle zu filtern und den Token-Verbrauch zu reduzieren. In manchen Szenarien kann dies die Genauigkeit des Modells beeinträchtigen',
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['de-DE'],
     kbSearchEnabledDescribe:
       'Automatisch relevante Wissensdatenbank-Inhalte zu Beginn einer neuen Unterhaltung durchsuchen und der KI erlauben, die Wissensdatenbank waehrend der Unterhaltung zu durchsuchen',

@@ -138,7 +138,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
       // The component should render all main menu items
       mainMenuItems.forEach((item) => {
         expect(item.key).toBeDefined()
-        expect(item.name).toBeDefined()
+        expect(item.nameKey).toBeDefined()
         expect(item.icon).toBeDefined()
       })
     })
@@ -152,7 +152,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
 
     it('should not render user menu item', () => {
       // Check that there's no user menu item in the data
-      const userMenuItem = menuTabsData.find((item) => item.key === 'user' || item.name === 'User')
+      const userMenuItem = menuTabsData.find((item) => item.key === 'user' || item.nameKey === 'common.user')
       expect(userMenuItem).toBeUndefined()
     })
 
@@ -173,7 +173,7 @@ describe('LeftTab Menu - Intranet Edition', () => {
   describe('Menu item properties', () => {
     it('should have required properties for each menu item', () => {
       menuTabsData.forEach((item) => {
-        expect(item).toHaveProperty('name')
+        expect(item).toHaveProperty('nameKey')
         expect(item).toHaveProperty('key')
         expect(item).toHaveProperty('icon')
       })
@@ -257,16 +257,27 @@ describe('LeftTab Menu - Intranet Edition', () => {
   })
 
   describe('Menu item names', () => {
-    it('should have correct menu item names', () => {
-      const expectedNames = ['Hosts', 'Assets', 'Files', 'Snippets', 'Knowledge', 'Plugins', 'AI', 'Database', 'Setting']
+    it('should have correct menu item i18n keys', () => {
+      const expectedNameKeys = [
+        'common.workspace',
+        'common.management',
+        'common.files',
+        'common.quickCommand',
+        'common.knowledge',
+        'extensions.plugins',
+        'common.ai',
+        'common.database',
+        'common.setting'
+      ]
 
-      const actualNames = menuTabsData.map((item) => item.name)
-      expect(actualNames).toEqual(expectedNames)
+      const actualNameKeys = menuTabsData.map((item) => item.nameKey)
+      expect(actualNameKeys).toEqual(expectedNameKeys)
     })
 
-    it('should have Setting as the bottom menu item name', () => {
+    it('should have setting as the bottom menu item key', () => {
       const bottomMenuItem = menuTabsData[menuTabsData.length - 1]
-      expect(bottomMenuItem.name).toBe('Setting')
+      expect(bottomMenuItem.nameKey).toBe('common.setting')
+      expect(bottomMenuItem.key).toBe('setting')
     })
   })
 
@@ -324,10 +335,10 @@ describe('LeftTab Menu - Intranet Edition', () => {
   })
 
   describe('Menu accessibility', () => {
-    it('should have tooltips for all menu items', () => {
+    it('should have i18n keys for all menu items', () => {
       menuTabsData.forEach((item) => {
-        expect(item.name).toBeDefined()
-        expect(item.name.length).toBeGreaterThan(0)
+        expect(item.nameKey).toBeDefined()
+        expect(item.nameKey.length).toBeGreaterThan(0)
       })
     })
 

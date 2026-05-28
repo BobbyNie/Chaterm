@@ -17,6 +17,7 @@ export default {
     keychain: 'Keychain',
     extensions: 'Extensions',
     ai: 'AI',
+    knowledge: 'Knowledge',
     user: 'User',
     setting: 'Setting',
     notice: 'Notice',
@@ -256,6 +257,8 @@ export default {
     cursorStyleBlock: 'Block',
     cursorStyleBar: 'Bar',
     cursorStyleUnderline: 'Underline',
+    cursorBlink: 'Cursor blink',
+    lineHeight: 'Line height',
     mouseEvent: 'Mouse Event',
     middleMouseEvent: 'Middle Mouse Event',
     rightMouseEvent: 'Right Mouse Event',
@@ -413,6 +416,9 @@ export default {
     autoApprovalDescribe: 'Allow Agent to run tools without asking for confirmation',
     autoExecuteReadOnlyCommands: 'Auto-execute read-only commands',
     autoExecuteReadOnlyCommandsDescribe: 'Read-only commands (e.g. ls, cat, grep) in all sessions will be auto-executed without confirmation',
+    commandOutputFilteringEnabled: 'Command output filtering',
+    commandOutputFilteringEnabledDescribe:
+      'Use rtk to filter command execution results and reduce token usage. In some scenarios this may affect model accuracy',
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['en-US'],
     kbSearchEnabledDescribe:
       'Automatically search relevant knowledge base content when starting a new conversation, and allow AI to search the knowledge base during conversations',

@@ -17,6 +17,7 @@ export default {
     keychain: 'Cadeia de Chaves',
     extensions: 'Extensões',
     ai: 'IA',
+    knowledge: 'Base de conhecimento',
     user: 'Utilizador',
     setting: 'Configurações',
     notice: 'Aviso',
@@ -256,6 +257,8 @@ export default {
     cursorStyleBlock: 'Bloco',
     cursorStyleBar: 'Barra',
     cursorStyleUnderline: 'Sublinhado',
+    cursorBlink: 'Piscar do cursor',
+    lineHeight: 'Altura da linha',
     mouseEvent: 'Evento do mouse',
     middleMouseEvent: 'Evento do mouse do meio',
     rightMouseEvent: 'Evento do mouse direito',
@@ -415,6 +418,9 @@ export default {
     autoExecuteReadOnlyCommands: 'Executar automaticamente comandos somente leitura',
     autoExecuteReadOnlyCommandsDescribe:
       'Comandos somente leitura (ex: ls, cat, grep) em todas as sessões serão executados automaticamente sem confirmação',
+    commandOutputFilteringEnabled: 'Filtragem da saída de comandos',
+    commandOutputFilteringEnabledDescribe:
+      'Usa rtk para filtrar os resultados da execução de comandos e reduzir o consumo de tokens. Em alguns cenários, isso pode afetar a precisão do modelo',
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['pt-PT'],
     kbSearchEnabledDescribe:
       'Pesquisar automaticamente conteudo relevante da base de conhecimento ao iniciar uma nova conversa e permitir que a IA pesquise a base de conhecimento durante as conversas',

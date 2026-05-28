@@ -17,6 +17,7 @@ export default {
     keychain: 'Связка ключей',
     extensions: 'Расширения',
     ai: 'ИИ',
+    knowledge: 'База знаний',
     user: 'Пользователь',
     setting: 'Настройки',
     notice: 'Уведомление',
@@ -256,6 +257,8 @@ export default {
     cursorStyleBlock: 'Блок',
     cursorStyleBar: 'Полоса',
     cursorStyleUnderline: 'Подчеркивание',
+    cursorBlink: 'Мигание курсора',
+    lineHeight: 'Высота строки',
     mouseEvent: 'Событие мыши',
     middleMouseEvent: 'Событие средней кнопки мыши',
     rightMouseEvent: 'Событие правой кнопки мыши',
@@ -416,6 +419,9 @@ export default {
     autoExecuteReadOnlyCommands: 'Автовыполнение команд только для чтения',
     autoExecuteReadOnlyCommandsDescribe:
       'Команды только для чтения (ls, cat, grep и др.) во всех сессиях будут выполняться автоматически без подтверждения',
+    commandOutputFilteringEnabled: 'Фильтрация вывода команд',
+    commandOutputFilteringEnabledDescribe:
+      'Использует rtk для фильтрации результатов выполнения команд и снижения расхода токенов. В некоторых сценариях это может повлиять на точность модели',
     kbSearchEnabled: KB_SEARCH_ENABLED_LABELS['ru-RU'],
     kbSearchEnabledDescribe:
       'Автоматически искать релевантный контент в базе знаний при начале нового разговора и позволять ИИ искать в базе знаний во время разговоров',

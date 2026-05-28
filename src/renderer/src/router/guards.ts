@@ -1,7 +1,60 @@
-import { getUserInfo, setUserInfo } from '@/utils/permission'
+import axios from 'axios'
+import config from '@/config'
+import { getUserInfo, removeToken, setUserInfo } from '@/utils/permission'
 import { dataSyncService } from '@/services/dataSyncService'
 
 const logger = createRendererLogger('router')
+let aiModelWarmupScheduled = false
+
+// Dedicated axios instance for startup token verification (no global 401 redirect interceptors)
+const authCheckRequest = axios.create({ baseURL: config.api, timeout: 5000 })
+authCheckRequest.interceptors.request.use((cfg) => {
+  const token = localStorage.getItem('ctm-token')
+  if (token) cfg.headers['Authorization'] = `Bearer ${token}`
+  return cfg
+})
+
+function scheduleAiModelWarmup(): void {
+  if (aiModelWarmupScheduled) {
+    return
+  }
+  aiModelWarmupScheduled = true
+
+  const runWarmup = () => {
+    void import('@/views/components/AiTab/composables/useModelConfiguration')
+      .then(({ useModelConfiguration }) => {
+        void useModelConfiguration()
+          .initModelOptions()
+          .catch((error) => {
+            logger.warn('Failed to warm up AI model options', { error })
+          })
+      })
+      .catch((error) => {
+        logger.warn('Failed to load AI model configuration warmup', { error })
+      })
+  }
+
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number
+  }
+
+  if (typeof idleWindow.requestIdleCallback === 'function') {
+    idleWindow.requestIdleCallback(runWarmup, { timeout: 5_000 })
+    return
+  }
+
+  window.setTimeout(runWarmup, 1_500)
+}
+
+async function verifyTokenWithServer(): Promise<'ok' | 'unauthorized' | 'network_error'> {
+  try {
+    await authCheckRequest.get('/user/info')
+    return 'ok'
+  } catch (error: any) {
+    if (error?.response?.status === 401) return 'unauthorized'
+    return 'network_error'
+  }
+}
 
 // Auto-skip login for intranet use
 const autoSkipLogin = async () => {
@@ -31,6 +84,7 @@ export const beforeEach = async (to, _from, next) => {
     // Auto-skip login for intranet use
     const success = await autoSkipLogin()
     if (success) {
+      scheduleAiModelWarmup()
       next('/')
       return
     }
@@ -51,6 +105,7 @@ export const beforeEach = async (to, _from, next) => {
       logger.info('Database initialization result', { success: dbResult.success })
 
       if (dbResult.success) {
+        scheduleAiModelWarmup()
         if (to.path === '/') {
           next()
         } else {
@@ -83,10 +138,24 @@ export const beforeEach = async (to, _from, next) => {
         const dbResult = await api.initUserDatabase({ uid: userInfo.uid })
 
         if (dbResult.success) {
-          // After database initialization succeeds, asynchronously initialize data sync service (non-blocking UI display)
+          const tokenStatus = await verifyTokenWithServer()
+          if (tokenStatus === 'unauthorized') {
+            logger.warn('Token expired on startup, redirecting to login')
+            await dataSyncService.disableDataSync().catch((error) => {
+              logger.error('Failed to disable data sync after token expiry', { error })
+            })
+            dataSyncService.reset()
+            removeToken()
+            next('/login')
+            return
+          }
+
           dataSyncService.initialize().catch((error) => {
             logger.error('Data sync service initialization failed', { error: error })
           })
+          if (tokenStatus === 'ok') {
+            scheduleAiModelWarmup()
+          }
           next()
         } else {
           logger.error('Database initialization failed, redirecting to login page')
@@ -100,7 +169,6 @@ export const beforeEach = async (to, _from, next) => {
 
       const message = error instanceof Error ? error.message : String(error)
 
-      // In the development environment, bypass the relevant errors (usually caused by hot updates)
       if (isDev && (message.includes('nextSibling') || message.includes('getUserInfo'))) {
         next()
         return
@@ -111,6 +179,7 @@ export const beforeEach = async (to, _from, next) => {
     // Auto-skip login for intranet use - no token exists
     const success = await autoSkipLogin()
     if (success) {
+      scheduleAiModelWarmup()
       next('/')
     } else {
       next('/login')

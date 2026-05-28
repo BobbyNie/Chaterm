@@ -52,6 +52,7 @@
       :ai-enabled="queryCommandFlag"
       :has-ai-suggestion="!!aiSuggestion"
       @trigger-ai="onAiTriggerHover"
+      @click-item="onSuggestionClickItem"
     />
     <v-contextmenu ref="contextmenu">
       <Context
@@ -586,10 +587,11 @@ onMounted(async () => {
   const termInstance = markRaw(
     new Terminal({
       scrollback: config.scrollBack,
-      cursorBlink: true,
+      cursorBlink: config.cursorBlink !== false,
       cursorStyle: config.cursorStyle,
       fontSize: config.fontSize || 12,
       fontFamily: config.fontFamily || 'Menlo, Monaco, "Courier New", Consolas, Courier, monospace',
+      lineHeight: typeof config.lineHeight === 'number' ? config.lineHeight : 1,
       allowTransparency: true,
       theme: getResolvedTerminalTheme(config.theme as ThemeId, { hasCustomBg: hasCustomBg() })
     })
@@ -4692,6 +4694,12 @@ const onAiTriggerHover = () => {
 
   const currentRequestId = ++aiSuggestRequestId.value
   fetchAiSuggestion(commandText, currentRequestId)
+}
+
+const onSuggestionClickItem = (index: number) => {
+  if (index < 0 || index >= displaySuggestions.value.length) return
+  selectSuggestion(displaySuggestions.value[index])
+  terminal.value?.focus()
 }
 
 // Shortcut-triggered AI suggestion: called via Ctrl+I / Cmd+I even when suggestion panel is not visible

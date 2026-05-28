@@ -2,6 +2,24 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
+      "version": "2026.05.28",
+      "date": "2026-05-28",
+      "highlights": {
+        "zh-CN": [
+          "同步上游 v0.11.3：设置页左侧导航新增图标，亮色主题与 Header 布局切换优化",
+          "同步上游：AI 模型预热调度、默认锁定模型名与终端光标/行高设置增强",
+          "内网版：修复访客用户 AI 模型配置在 Tab 挂载时被意外清除的问题",
+          "内网版：路由守卫集成模型预热，保留访客自动登录与本地模型配置"
+        ],
+        "en-US": [
+          "Synced upstream v0.11.3: Settings nav icons, light theme polish, and Header layout icon buttons",
+          "Synced upstream: AI model warmup scheduling, default locked model names, and terminal cursor/line-height settings",
+          "Intranet: fixed guest user AI model config being cleared on AI tab mount",
+          "Intranet: router guards schedule model warmup while preserving guest auto-login and local model config"
+        ]
+      }
+    },
+    {
       "version": "2026.05.23",
       "date": "2026-05-23",
       "highlights": {
@@ -23,7 +41,7 @@
     },
     {
       "version": "0.11.2",
-      "date": "2026-05-22",
+      "date": "2026-05-26",
       "highlights": {
         "zh-CN": [
           "新增交互式新手引导系统",
