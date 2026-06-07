@@ -2,6 +2,24 @@
   "releaseNotesUrl": "https://github.com/BobbyNie/Chaterm/releases/tag/v",
   "versions": [
     {
+      "version": "2026.06.07",
+      "date": "2026-06-07",
+      "highlights": {
+        "zh-CN": [
+          "同步上游 103 项提交：SSH 密码凭据管理、本地 Shell 启动模式与终端输出缓冲增强",
+          "同步上游：终端别名展开、剪贴板粘贴、本地回显与 Fig 自动补全支持",
+          "同步上游：Dockview 标签页滚轮滚动、文件夹样式优化与依赖安全更新",
+          "内网版：保留访客自动登录，移除用户菜单与账号中心入口"
+        ],
+        "en-US": [
+          "Synced upstream 103 commits: SSH password credentials, local shell startup modes, and terminal output buffering",
+          "Synced upstream: terminal alias expansion, clipboard paste, local echo, and Fig autocomplete support",
+          "Synced upstream: Dockview tab wheel scrolling, folder style polish, and dependency security updates",
+          "Intranet: preserved guest auto-login; user menu and account center entry remain removed"
+        ]
+      }
+    },
+    {
       "version": "2026.05.28",
       "date": "2026-05-28",
       "highlights": {

@@ -671,11 +671,11 @@ const buildSftpConnDataForFiles = async (node: any, side: PanelSide) => {
   let passphrase = ''
 
   if (assetInfo) {
-    password = assetInfo.auth_type === 'password' ? assetInfo.password || '' : ''
+    password = assetInfo.auth_type !== 'keyBased' ? assetInfo.password || '' : ''
     privateKey = assetInfo.auth_type === 'keyBased' ? assetInfo.privateKey || '' : ''
     passphrase = assetInfo.auth_type === 'keyBased' ? assetInfo.passphrase || '' : ''
   } else {
-    password = node?.authType === 'password' ? node?.password || '' : node?.password || ''
+    password = node?.authType !== 'privateKey' ? node?.password || '' : ''
     privateKey = node?.authType === 'privateKey' ? node?.privateKey || '' : node?.privateKey || ''
     passphrase = node?.passphrase || ''
   }
@@ -719,7 +719,7 @@ const buildSftpConnDataForFiles = async (node: any, side: PanelSide) => {
     targetAsset: connComment || connHost,
     comment: connComment,
     sshType: connSshType,
-    terminalType: cfg?.terminalType || 'vt100',
+    terminalType: cfg?.terminalType || 'xterm-256color',
     agentForward: cfg?.sshAgentsStatus === 1,
     isOfficeDevice: false,
     connIdentToken: jmsToken,

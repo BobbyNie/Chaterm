@@ -3,6 +3,13 @@ import type { TaskMetadata } from '../main/agent/core/context/context-tracking/C
 import type { CommandGenerationContext, WebviewMessage } from '../main/agent/shared/WebviewMessage'
 import type { DbAiApi } from '../shared/db-ai-types'
 
+interface FigSuggestion {
+  text: string
+  displayText: string
+  description?: string
+  source: 'subcommand' | 'option' | 'arg' | 'command'
+}
+
 interface Cookie {
   name: string
   value: string
@@ -319,6 +326,7 @@ interface ApiType {
   invokeCustomAdsorption: (data: { appX: number; appY: number }) => void
   queryCommand: (data: { command: string; ip: string }) => Promise<any>
   insertCommand: (data: { command: string; ip: string }) => Promise<any>
+  queryFigSpec: (data: { commandLine: string; tokens: string[] }) => Promise<FigSuggestion[]>
   aiSuggestCommand: (data: { command: string; osInfo?: string }) => Promise<{ command: string; explanation: string } | null>
   getLocalAssetRoute: (data: { searchType: string; params?: any[] }) => Promise<any>
 
@@ -407,6 +415,7 @@ interface ApiType {
   chatermUpdate: (data: { sql: string; params?: any[] }) => Promise<any>
   deleteAsset: (data: { uuid: string }) => Promise<any>
   getKeyChainSelect: () => Promise<any>
+  getPasswordChainSelect: () => Promise<any>
   getAssetGroup: () => Promise<any>
   createAsset: (data: { form: any }) => Promise<any>
   createOrUpdateAsset: (data: { form: any }) => Promise<any>
@@ -418,6 +427,7 @@ interface ApiType {
   updateKeyChain: (data: { form: any }) => Promise<any>
   connectAssetInfo: (data: { uuid: string; organizationUuid?: string; ip?: string }) => Promise<any>
   openBrowserWindow: (url: string) => Promise<void>
+  openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>
   connect: (connectionInfo: any) => Promise<any>
   forkSession: (params: { sourceConnectionId: string; newConnectionId: string; host: string; port: number; username: string }) => Promise<any>
   startSshTunnel: (params: {
@@ -649,7 +659,23 @@ interface ApiType {
   }>
   getKbCloudStorage: () => Promise<{ usedBytes: number; totalBytes: number }>
   getLocalWorkingDirectory: () => Promise<{ success: boolean; cwd: string }>
+  connectLocal: (config: {
+    id: string
+    shell?: string
+    cwd?: string
+    env?: Record<string, string>
+    cols?: number
+    rows?: number
+    termType?: string
+    startupMode?: 'interactive' | 'fast'
+  }) => Promise<{ success: boolean; message?: string }>
+  sendDataLocal: (terminalId: string, data: string) => Promise<{ success: boolean; message?: string }>
+  resizeLocal: (terminalId: string, cols: number, rows: number) => Promise<{ success: boolean; status?: string; message?: string }>
+  closeLocal: (terminalId: string) => Promise<{ success: boolean; message?: string }>
   getShellsLocal: () => Promise<any>
+  onDataLocal: (id: string, callback: (data: string) => void) => () => void
+  onErrorLocal: (id: string, callback: (error: unknown) => void) => (() => void) | undefined
+  onExitLocal: (id: string, callback: (exitCode: unknown) => void) => () => void
   agentEnableAndConfigure: (opts: { enabled: boolean }) => Promise<any>
   addKey: (opts: { keyData: string; passphrase?: string; comment?: string }) => Promise<any>
   getSecurityConfigPath: () => Promise<string>

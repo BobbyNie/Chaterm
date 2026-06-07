@@ -1791,6 +1791,16 @@ function setupIPC(): void {
     createBrowserWindow(url)
   })
 
+  ipcMain.handle('open-external-url', async (_, url: string) => {
+    try {
+      await shell.openExternal(url)
+      return { success: true }
+    } catch (error) {
+      logger.error('Failed to open external url', { error, url })
+      return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  })
+
   // Browser navigation control
   ipcMain.on('browser-go-back', () => {
     if (browserWindow && !browserWindow.isDestroyed() && browserWindow.webContents.canGoBack()) {
@@ -2042,6 +2052,18 @@ ipcMain.handle('insert-command', async (_, data) => {
   }
 })
 
+ipcMain.handle('query-fig-spec', async (_, data) => {
+  try {
+    const { commandLine, tokens } = data
+    if (!commandLine || !Array.isArray(tokens)) return []
+    const { getFigSuggestions } = await import('./ssh/figSpecHandler')
+    return await getFigSuggestions({ commandLine, tokens })
+  } catch (error) {
+    logger.error('query-fig-spec failed', { error: error })
+    return []
+  }
+})
+
 ipcMain.handle('ai-suggest-command', async (_, data) => {
   try {
     const { command, osInfo } = data
@@ -2114,6 +2136,16 @@ ipcMain.handle('key-chain-local-get', async () => {
     return result
   } catch (error) {
     logger.error('Chaterm get data failed', { error: error })
+    return null
+  }
+})
+
+ipcMain.handle('password-chain-local-get', async () => {
+  try {
+    const result = chatermDbService.getPasswordChainSelect()
+    return result
+  } catch (error) {
+    logger.error('Chaterm get password chain failed', { error: error })
     return null
   }
 })

@@ -127,6 +127,8 @@ import { userConfigStore as serviceUserConfig } from '@/services/userConfigStore
 import { v4 as uuidv4 } from 'uuid'
 import { Base64Util } from '@/utils/base64'
 import { userInfoStore } from '@/store/index'
+import { useDeviceStore } from '@/store/useDeviceStore'
+import { checkUserDevice } from '@api/user/user'
 import stripAnsi from 'strip-ansi'
 import { commandBarHeight, inputManager } from './utils/termInputManager'
 import { shellCommands } from './utils/shellCmd'
@@ -144,6 +146,10 @@ import { isFocusInAiTab } from '@/utils/domUtils'
 import { keywordHighlightService } from '@/services/keywordHighlightService'
 import { useZmodem } from './utils/chatermZmodem'
 import { shouldAutoScrollAfterTerminalStateUpdate, shouldAutoScrollAfterTerminalWrite } from './utils/terminalScroll'
+import { LocalEchoController } from './utils/localEcho'
+import { resolveAliasExpansion, shouldSuppressCtrlVAfterNativePaste } from './utils/terminalInput'
+import { applyTerminalRuntimeConfig, TERMINAL_RUNTIME_CONFIG_CHANGED_EVENT, type TerminalRuntimeConfig } from '@/utils/terminalRuntimeConfig'
+import { createTerminalWriteQueue, type TerminalWriteQueue } from '@/utils/terminalWriteQueue'
 
 // Pre-compiled regex constants for checkFullScreenClear / checkHeavyUiStyle (avoid re-creation per call)
 const CLEAR_SCREEN_PATTERNS = [
@@ -176,21 +182,27 @@ let viewportScrollbarHideTimer: number | null = null
 // Coalesced scrollToBottom: uses requestAnimationFrame for smooth alignment with browser repaint
 let scrollToBottomScheduled = false
 let scrollToBottomNeedsFocus = false
-const scheduleScrollToBottom = () => {
+const scheduleScrollToBottom = (options?: { force?: boolean }) => {
+  if (options?.force === true || scrollToBottomNeedsFocus) {
+    terminalWriteQueue?.setPaused(false)
+  }
   if (scrollToBottomScheduled) return
   scrollToBottomScheduled = true
   requestAnimationFrame(() => {
-    terminal.value?.scrollToBottom()
-    if (scrollToBottomNeedsFocus) {
-      terminal.value?.focus()
-      scrollToBottomNeedsFocus = false
+    const force = options?.force === true || scrollToBottomNeedsFocus
+    if (force || shouldAutoScrollAfterTerminalWrite(terminal.value)) {
+      terminal.value?.scrollToBottom()
+      if (scrollToBottomNeedsFocus) {
+        terminal.value?.focus()
+      }
     }
+    scrollToBottomNeedsFocus = false
     scrollToBottomScheduled = false
   })
 }
 const scheduleScrollToBottomAndFocus = () => {
   scrollToBottomNeedsFocus = true
-  scheduleScrollToBottom()
+  scheduleScrollToBottom({ force: true })
 }
 
 const showTerminalScrollbarTemporarily = () => {
@@ -210,6 +222,7 @@ const showTerminalScrollbarTemporarily = () => {
 }
 
 const handleViewportScroll = () => {
+  terminalWriteQueue?.setPaused(!shouldAutoScrollAfterTerminalWrite(terminal.value))
   updateSelectionButtonPosition()
   showTerminalScrollbarTemporarily()
 }
@@ -405,7 +418,10 @@ const contextmenu = ref()
 const cursorStartX = ref(0)
 const api = window.api as any
 const encoder = new TextEncoder()
-let cusWrite: ((data: string, options?: { isUserCall?: boolean }) => void) | null = null
+type TerminalWriteOptions = { isUserCall?: boolean; updateStateAfterWrite?: boolean; allowHighlightAfterWrite?: boolean }
+let cusWrite: ((data: string, options?: TerminalWriteOptions) => void) | null = null
+let terminalWriteQueue: TerminalWriteQueue | null = null
+const localEcho = new LocalEchoController()
 let resizeObserver: ResizeObserver | null = null
 const showSearch = ref(false)
 const searchAddon = ref<SearchAddon | null>(null)
@@ -467,8 +483,9 @@ let termOndata: IDisposable | null = null
 let termOnBinary: IDisposable | null = null
 let handleInput
 let textareaCompositionListener: ((e: CompositionEvent) => void) | null = null
-let textareaPasteListener: (() => void) | null = null
+let textareaPasteListener: ((e: ClipboardEvent) => void) | null = null
 const pasteFlag = ref(false)
+let lastNativePasteAt = 0
 let dbConfigStash: {
   aliasStatus?: number
   autoCompleteStatus?: number
@@ -480,6 +497,19 @@ let config
 
 const isOfficeDevice = ref(false)
 const isLocalConnect = ref(false)
+const deviceStore = useDeviceStore()
+
+const getUserInfo = async () => {
+  try {
+    const res = (await checkUserDevice({ ip: deviceStore.getDeviceIp, macAddress: deviceStore.getMacAddress })) as any
+    if (res && res.code === 200) {
+      isOfficeDevice.value = res.data.isOfficeDevice
+    }
+  } catch (error) {
+    logger.error('Failed to get user info', { error: error })
+  }
+}
+
 const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
 const preserveSelectionOnCtrlLinkRelease = ref(false)
 
@@ -571,6 +601,8 @@ const handleMetaKeyUp = (e: KeyboardEvent) => {
 }
 
 onMounted(async () => {
+  const isLocalShellConnection = props.connectData.asset_type === 'shell'
+  const userInfoReady = isLocalShellConnection ? Promise.resolve() : getUserInfo()
   config = await serviceUserConfig.getConfig()
   dbConfigStash = config
   queryCommandFlag.value = config.autoCompleteStatus == 1
@@ -597,6 +629,12 @@ onMounted(async () => {
     })
   )
   terminal.value = termInstance
+  localEcho.setEnabled(config.localEchoEnabled === true)
+  localEcho.setTerminal({
+    write: (data: string) => {
+      cusWrite?.(data, { isUserCall: true, updateStateAfterWrite: true, allowHighlightAfterWrite: true })
+    }
+  })
   perfMark('chaterm/terminal/didCreate')
   termInstance?.onKey(handleKeyInput)
   termInstance?.onSelectionChange(() => {
@@ -686,19 +724,41 @@ onMounted(async () => {
         key: e.data
       })
     }
-    textareaPasteListener = () => {
+    textareaPasteListener = (e: ClipboardEvent) => {
       pasteFlag.value = true
+      const text = e.clipboardData?.getData('text/plain') ?? ''
+      if (!text) {
+        return
+      }
+
+      e.preventDefault()
+      lastNativePasteAt = Date.now()
+      sendDataAutoSwitchTerminal(text)
+      scheduleScrollToBottomAndFocus()
     }
     textarea.addEventListener('compositionend', textareaCompositionListener)
     textarea.addEventListener('paste', textareaPasteListener)
   }
   const originalWrite = termInstance.write.bind(termInstance)
+  terminalWriteQueue = createTerminalWriteQueue({
+    write: originalWrite,
+    maxBatchBytes: 64 * 1024,
+    maxPendingBytes: 2 * 1024 * 1024
+  })
+  cleanupListeners.value.push(() => {
+    terminalWriteQueue?.dispose()
+    terminalWriteQueue = null
+  })
 
   // High-throughput detection: bypass expensive processing during bulk output (e.g., cat large file)
   const HIGH_THROUGHPUT_THRESHOLD = 20 // writes per second to trigger
   const HIGH_THROUGHPUT_COOLDOWN = 500 // ms of low activity to exit
+  const HIGH_THROUGHPUT_PENDING_BYTES = 256 * 1024
+  const HIGH_THROUGHPUT_BYTES_THRESHOLD = 256 * 1024
+  const HIGH_THROUGHPUT_CHUNK_BYTES = 32 * 1024
   let highThroughputMode = false
   let htWriteCount = 0
+  let htWriteBytes = 0
   let htWindowTimer: ReturnType<typeof setTimeout> | null = null
   let htCooldownTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -715,7 +775,7 @@ onMounted(async () => {
     htCooldownTimer = setTimeout(exitHighThroughputMode, HIGH_THROUGHPUT_COOLDOWN)
   }
 
-  const debouncedUpdateTerminalState = (data, currentIsUserCall, shouldAutoScrollAfterWrite = true) => {
+  const debouncedUpdateTerminalState = (data, currentIsUserCall, shouldAutoScrollAfterWrite = true, options?: { allowHighlight?: boolean }) => {
     if (updateTimeout) {
       clearTimeout(updateTimeout)
     }
@@ -729,7 +789,7 @@ onMounted(async () => {
     if (terminalMode.value !== 'none') {
       highLightFlag = false
     }
-    if (currentIsUserCall) {
+    if (currentIsUserCall && options?.allowHighlight !== true) {
       highLightFlag = false
     }
     if (pasteFlag.value && !enterPress.value) {
@@ -748,33 +808,54 @@ onMounted(async () => {
     updateTimeout = null
   }
 
-  cusWrite = function (data: string, options?: { isUserCall?: boolean }): void {
+  cusWrite = function (data: string, options?: TerminalWriteOptions): void {
     const currentIsUserCall = options?.isUserCall ?? false
+    const updateStateAfterWrite = options?.updateStateAfterWrite === true
     userInputFlag.value = currentIsUserCall
 
     // Track write frequency to detect high-throughput scenarios (e.g., cat large file)
     if (!currentIsUserCall) {
       htWriteCount++
+      htWriteBytes += data.length
+      if (data.length >= HIGH_THROUGHPUT_CHUNK_BYTES || htWriteBytes >= HIGH_THROUGHPUT_BYTES_THRESHOLD) {
+        highThroughputMode = true
+      }
       if (!htWindowTimer) {
         htWindowTimer = setTimeout(() => {
-          if (htWriteCount >= HIGH_THROUGHPUT_THRESHOLD) {
+          if (htWriteCount >= HIGH_THROUGHPUT_THRESHOLD || htWriteBytes >= HIGH_THROUGHPUT_BYTES_THRESHOLD) {
             highThroughputMode = true
+            scheduleHighThroughputExit()
           }
           htWriteCount = 0
+          htWriteBytes = 0
           htWindowTimer = null
         }, 1000)
       }
     }
 
     // High-throughput mode: bypass keyword highlight, render patching, and state updates
-    if (highThroughputMode && !currentIsUserCall) {
+    const pendingBytes = terminalWriteQueue?.getPendingBytes() ?? 0
+    if ((highThroughputMode || pendingBytes >= HIGH_THROUGHPUT_PENDING_BYTES) && !currentIsUserCall) {
       const shouldAutoScroll = shouldAutoScrollAfterTerminalWrite(terminal.value)
-      originalWrite(data, () => {
-        if (shouldAutoScroll) {
-          scheduleScrollToBottom()
+      terminalWriteQueue?.enqueue(data, {
+        droppable: terminalMode.value === 'none',
+        callback: () => {
+          if (shouldAutoScroll) {
+            scheduleScrollToBottom()
+          }
         }
       })
+      highThroughputMode = true
       scheduleHighThroughputExit()
+      return
+    }
+
+    if (currentIsUserCall) {
+      originalWrite(data, () => {
+        if (updateStateAfterWrite) {
+          debouncedUpdateTerminalState(data, currentIsUserCall, false, { allowHighlight: options?.allowHighlightAfterWrite === true })
+        }
+      })
       return
     }
 
@@ -787,12 +868,15 @@ onMounted(async () => {
     }
 
     const shouldAutoScroll = !currentIsUserCall && shouldAutoScrollAfterTerminalWrite(terminal.value)
-    originalWrite(processedData, () => {
-      if (!currentIsUserCall) {
-        debouncedUpdateTerminalState(data, currentIsUserCall, shouldAutoScroll)
-      }
-      if (shouldAutoScroll) {
-        scheduleScrollToBottom()
+    terminalWriteQueue?.enqueue(processedData, {
+      droppable: terminalMode.value === 'none',
+      callback: () => {
+        if (!currentIsUserCall || updateStateAfterWrite) {
+          debouncedUpdateTerminalState(data, currentIsUserCall, shouldAutoScroll, { allowHighlight: options?.allowHighlightAfterWrite === true })
+        }
+        if (shouldAutoScroll) {
+          scheduleScrollToBottom()
+        }
       }
     })
   }
@@ -871,12 +955,13 @@ onMounted(async () => {
     handleSendOrToggleAi()
   }
 
-  if (props.connectData.asset_type === 'shell') {
+  if (isLocalShellConnection) {
     config.highlightStatus = 2
     config.autoCompleteStatus = 2
     isLocalConnect.value = true
     connectLocalSSH()
   } else {
+    await userInfoReady
     connectSSH()
   }
 
@@ -905,6 +990,30 @@ onMounted(async () => {
       terminal.value.options.theme = getResolvedTerminalTheme(themeId, { hasCustomBg: hasCustomBg() })
     }
   }
+
+  const handleLocalEchoSettingChanged = (enabled: boolean) => {
+    if (config) {
+      config.localEchoEnabled = enabled
+    }
+    localEcho.setEnabled(enabled)
+  }
+
+  const handleTerminalRuntimeConfigChanged = (updatedConfig: Partial<TerminalRuntimeConfig>) => {
+    if (!updatedConfig || typeof updatedConfig !== 'object') return
+
+    config = {
+      ...(config || {}),
+      ...updatedConfig
+    }
+
+    const { requiresResize } = applyTerminalRuntimeConfig(terminal.value, updatedConfig)
+    if (requiresResize) {
+      nextTick(() => {
+        handleResize()
+      })
+    }
+  }
+
   const handleGetCursorPosition = (payload: { connectionId?: string; callback: (position: any) => void }) => {
     const { connectionId: targetId, callback } = payload
     if (targetId && targetId !== props.currentConnectionId) return
@@ -924,6 +1033,8 @@ onMounted(async () => {
   eventBus.on('getCursorPosition', handleGetCursorPosition)
   eventBus.on('sendOrToggleAiFromTerminalForTab', handleSendOrToggleAiForTab)
   eventBus.on('updateTheme', handleUpdateTheme)
+  eventBus.on('localEchoSettingChanged', handleLocalEchoSettingChanged)
+  eventBus.on(TERMINAL_RUNTIME_CONFIG_CHANGED_EVENT, handleTerminalRuntimeConfigChanged)
   eventBus.on('openSearch', openSearch)
   eventBus.on('pinchZoomStatusChanged', handlePinchZoomStatusChanged)
 
@@ -976,6 +1087,8 @@ onMounted(async () => {
     eventBus.off('sendOrToggleAiFromTerminalForTab', handleSendOrToggleAiForTab)
     eventBus.off('openSearch', openSearch)
     eventBus.off('pinchZoomStatusChanged', handlePinchZoomStatusChanged)
+    eventBus.off('localEchoSettingChanged', handleLocalEchoSettingChanged)
+    eventBus.off(TERMINAL_RUNTIME_CONFIG_CHANGED_EVENT, handleTerminalRuntimeConfigChanged)
     eventBus.off('clearCurrentTerminal')
     eventBus.off('fontSizeIncrease')
     eventBus.off('fontSizeDecrease')
@@ -1041,6 +1154,8 @@ const handlePinchZoomStatusChanged = async (enabled: boolean) => {
 
 onBeforeUnmount(() => {
   manualDisconnectRequested.value = true
+  localEcho.reset()
+  localEcho.setTerminal(null)
   resetAutoReconnectState()
   cachedSelectionButton = null
   if (sendTerminalStateTimer) {
@@ -1215,8 +1330,8 @@ const handleSave = async (data) => {
   const { key, needClose } = data
   let errMsg = ''
   const editor = openEditors.find((editor) => editor?.key === key)
+  const newContent = editor?.vimText.replace(/\r\n/g, '\n') || ''
   if (editor?.fileChange) {
-    const newContent = editor.vimText.replace(/\r\n/g, '\n')
     let cmd = `cat <<'EOFChaterm:save' > ${editor.filePath}\n${newContent}\nEOFChaterm:save\n`
     if (connectionHasSudo.value) {
       cmd = `cat <<'EOFChaterm:save' | sudo tee  ${editor.filePath} > /dev/null \n${newContent}\nEOFChaterm:save\n`
@@ -1239,6 +1354,8 @@ const handleSave = async (data) => {
         }
       } else {
         editor.loading = false
+        editor.originVimText = newContent
+        editor.vimText = newContent
         editor.saved = true
         editor.fileChange = false
       }
@@ -1284,6 +1401,7 @@ const createEditor = async (filePath, contentType) => {
     } else if (existingEditor) {
       existingEditor.visible = true
       existingEditor.vimText = stdout
+      existingEditor.originVimText = stdout
     }
   }
 }
@@ -1554,6 +1672,7 @@ const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
   connectInProgress.value = true
   try {
     manualDisconnectRequested.value = false
+    localEcho.reset()
     clearAutoReconnectTimer()
     let connectSuccess = false
     logger.info('Start SSH connect', {
@@ -1591,11 +1710,11 @@ const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
       const privateKey = ref('')
       const passphrase = ref('')
       if (assetInfo) {
-        password.value = assetInfo.auth_type === 'password' ? assetInfo.password : ''
+        password.value = assetInfo.auth_type !== 'keyBased' ? assetInfo.password : ''
         privateKey.value = assetInfo.auth_type === 'keyBased' ? assetInfo.privateKey : ''
         passphrase.value = assetInfo.auth_type === 'keyBased' ? assetInfo.passphrase : ''
       } else {
-        password.value = props.connectData.authType === 'password' ? props.connectData.password : ''
+        password.value = props.connectData.authType !== 'privateKey' ? props.connectData.password : ''
         privateKey.value = props.connectData.authType === 'privateKey' ? props.connectData.privateKey : ''
         passphrase.value = props.connectData.passphrase || ''
       }
@@ -1697,6 +1816,7 @@ const connectSSH = async (_opts?: { isAutoReconnect?: boolean }) => {
         const connData: any = {
           id: connectionId.value, // Session ID (unique for each tab)
           assetUuid: jumpserverUuid, // JumpServer UUID (for connection pool reuse)
+          organizationUuid: fallbackOrgUuid,
           host: connConnectHost,
           port: connPort,
           username: connUsername,
@@ -1885,13 +2005,18 @@ const startShell = async () => {
       isConnected.value = true
       void loadOsInfoOnce()
       const removeDataListener = api.onShellData(connectionId.value, (response: MarkedResponse) => {
-        consumeZmodemIncoming(response)
+        const preparedResponse = prepareIncomingShellResponse(response)
+        if (preparedResponse) {
+          consumeZmodemIncoming(preparedResponse)
+        }
       })
       const removeErrorListener = api.onShellError(connectionId.value, (data) => {
+        localEcho.reset()
         cusWrite?.(data)
       })
       const removeCloseListener = api.onShellClose(connectionId.value, (closeInfo?: ShellCloseInfo) => {
         isConnected.value = false
+        localEcho.reset()
         logger.info('Shell close received', {
           event: 'ssh.shell.close.renderer',
           connectionId: connectionId.value,
@@ -2056,6 +2181,9 @@ const connectLocalSSH = async () => {
       // Assign handleInput so that external callers (e.g. snippet execution via
       // inputManager.sendToActiveTerm) can write into the local terminal.
       handleInput = (data) => {
+        if (data === '\x16' && shouldSuppressCtrlVAfterNativePaste(lastNativePasteAt)) {
+          return
+        }
         if (data === '\x1b[1;3D' || data === '\x1b[1;5D') {
           api.sendDataLocal(connectionId.value, '\x1bb')
           return
@@ -2063,6 +2191,16 @@ const connectLocalSSH = async () => {
         if (data === '\x1b[1;3C' || data === '\x1b[1;5C') {
           api.sendDataLocal(connectionId.value, '\x1bf')
           return
+        }
+        if (data === '\r') {
+          const command = terminalState.value.content
+          const aliasStore = aliasConfigStore()
+          const newCommand = resolveAliasExpansion(command, dbConfigStash.aliasStatus, aliasStore.getCommand)
+          if (newCommand) {
+            const delData = String.fromCharCode(127)
+            api.sendDataLocal(connectionId.value, delData.repeat(command.length) + newCommand + '\r')
+            return
+          }
         }
         api.sendDataLocal(connectionId.value, data)
       }
@@ -2105,7 +2243,9 @@ const startLocalShell = async () => {
         handleCommandOutput(data, true)
       } else {
         // Normal data output, just write to terminal
-        if (terminal.value) {
+        if (cusWrite) {
+          cusWrite(data)
+        } else if (terminal.value) {
           terminal.value.write(data)
         }
       }
@@ -2538,6 +2678,9 @@ const setupTerminalInput = () => {
         sendData(data)
       }
     } else if (data === '\x16') {
+      if (shouldSuppressCtrlVAfterNativePaste(lastNativePasteAt)) {
+        return
+      }
       // Check if we're in vim mode (alternate mode)
       if (terminalMode.value === 'alternate') {
         // In vim mode, pass Ctrl+V to remote terminal for visual block mode
@@ -2601,8 +2744,8 @@ const setupTerminalInput = () => {
       } else {
         const delData = String.fromCharCode(127)
         const aliasStore = aliasConfigStore()
-        const newCommand = aliasStore.getCommand(command)
-        if (dbConfigStash.aliasStatus === 1 && newCommand !== null) {
+        const newCommand = resolveAliasExpansion(command, dbConfigStash.aliasStatus, aliasStore.getCommand)
+        if (newCommand) {
           sendData(delData.repeat(command.length) + newCommand + '\r')
         } else if (config.quickVimStatus === 1) {
           // connectionSftpAvailable.value = await api.checkSftpConnAvailable(connectionId.value)
@@ -2729,6 +2872,7 @@ const sendDataAutoSwitchTerminal = (data) => {
   }
 }
 const sendData = (data) => {
+  tryPredictLocalEcho(data)
   api.writeToShell({
     id: connectionId.value,
     data: data.replace(/\r\n/g, '\n'),
@@ -2780,6 +2924,41 @@ export interface MarkedResponse {
   marker?: string
 }
 
+const ZMODEM_MAGIC = '**\x18B'
+
+const getCurrentLineForLocalEcho = (): string => {
+  const activeBuffer = terminal.value?.buffer?.active
+  const absoluteCursorLine = (activeBuffer?.baseY ?? 0) + (activeBuffer?.cursorY ?? 0)
+  const line = activeBuffer?.getLine(absoluteCursorLine)
+  return line?.translateToString(true) || ''
+}
+
+const tryPredictLocalEcho = (data: string): void => {
+  if (isLocalConnect.value || data.includes(ZMODEM_MAGIC)) {
+    return
+  }
+
+  localEcho.predict(data, {
+    isConnected: isConnected.value,
+    terminalMode: terminalMode.value,
+    isPaste: pasteFlag.value,
+    currentLine: getCurrentLineForLocalEcho()
+  })
+}
+
+const prepareIncomingShellResponse = (response: MarkedResponse): MarkedResponse | null => {
+  if (!response?.data || typeof response.data !== 'string' || response.data.includes(ZMODEM_MAGIC)) {
+    return response
+  }
+
+  const data = localEcho.reconcile(response.data)
+  if (!data) {
+    return null
+  }
+
+  return data === response.data ? response : { ...response, data }
+}
+
 const matchPattern = (data: number[], pattern: number[]): boolean => {
   if (data.length < pattern.length) return false
   for (let i = data.length - pattern.length; i >= Math.max(0, data.length - 500); i--) {
@@ -2802,6 +2981,9 @@ const terminalMode = ref<TerminalMode>('none')
 watch(
   terminalMode,
   (newMode) => {
+    if (newMode !== 'none') {
+      localEcho.reset()
+    }
     const isVimMode = newMode === 'alternate'
     window.postMessage(
       {
@@ -4717,6 +4899,68 @@ const triggerAiSuggestByShortcut = () => {
   fetchAiSuggestion(commandText, currentRequestId)
 }
 
+function tokenizeCommandLine(input: string): string[] {
+  const tokens: string[] = []
+  let current = ''
+  let inSingle = false
+  let inDouble = false
+  let escaped = false
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+    if (escaped) {
+      current += ch
+      escaped = false
+      continue
+    }
+    if (ch === '\\') {
+      escaped = true
+      current += ch
+      continue
+    }
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      current += ch
+      continue
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      current += ch
+      continue
+    }
+    if (ch === ' ' && !inSingle && !inDouble) {
+      if (current.length > 0) {
+        tokens.push(current)
+        current = ''
+      }
+      continue
+    }
+    current += ch
+  }
+  tokens.push(current)
+  return tokens
+}
+
+function mergeSuggestions(history: CommandSuggestion[], spec: CommandSuggestion[], wordIndex: number): CommandSuggestion[] {
+  const seen = new Set<string>()
+  const result: CommandSuggestion[] = []
+  const MAX = 8
+  const push = (s: CommandSuggestion) => {
+    if (result.length >= MAX) return
+    if (!seen.has(s.command)) {
+      seen.add(s.command)
+      result.push(s)
+    }
+  }
+  if (wordIndex === 0) {
+    history.forEach(push)
+    spec.forEach(push)
+  } else {
+    spec.forEach(push)
+    history.forEach(push)
+  }
+  return result
+}
+
 const queryCommand = async (cmd = '') => {
   if (!queryCommandFlag.value) return
 
@@ -4743,13 +4987,27 @@ const queryCommand = async (cmd = '') => {
     }
 
     const commandText = cmd ? cmd : terminalState.value.beforeCursor
-    const result = await (window.api as any).queryCommand({
-      command: commandText,
-      ip: props.connectData.ip
-    })
+    const tokens = tokenizeCommandLine(commandText)
+    const wordIndex = tokens.length - 1
 
-    if (result) {
-      suggestions.value = result as CommandSuggestion[]
+    const [historyResult, figResult] = await Promise.all([
+      (window.api as any).queryCommand({ command: commandText, ip: props.connectData.ip }).catch(() => []),
+      (window.api as any).queryFigSpec({ commandLine: commandText, tokens }).catch(() => [])
+    ])
+
+    const merged = mergeSuggestions(
+      (historyResult ?? []) as CommandSuggestion[],
+      (figResult ?? []).map((s: { text: string; displayText: string; description?: string; source: CommandSuggestion['source'] }) => ({
+        command: s.text,
+        displayLabel: s.displayText,
+        explanation: s.description,
+        source: s.source
+      })) as CommandSuggestion[],
+      wordIndex
+    )
+
+    suggestions.value = merged
+    if (merged.length) {
       setTimeout(() => {
         const componentInstance = componentRefs.value[connectionId.value]
         componentInstance?.updateSuggestionsPosition(terminal.value)
@@ -4829,6 +5087,7 @@ const handleKeyInput = (e) => {
 
 const disconnectSSH = async () => {
   manualDisconnectRequested.value = true
+  localEcho.reset()
   resetAutoReconnectState()
   logger.info('Manual disconnect requested', {
     event: 'ssh.disconnect.manual.renderer',
@@ -4901,8 +5160,9 @@ const contextAct = (action) => {
 
 const focus = () => {
   if (terminal.value) {
-    // Ensure terminal scrolls to bottom, keeping cursor in visible area
-    terminal.value.scrollToBottom()
+    if (shouldAutoScrollAfterTerminalWrite(terminal.value)) {
+      terminal.value.scrollToBottom()
+    }
     terminal.value.focus()
     inputManager.setActiveTerm(connectionId.value)
   }
@@ -5100,7 +5360,9 @@ const terminalContainerResize = () => {
   } else {
     terminalContainer.value?.style.setProperty('height', '100%')
     if (terminal.value) {
-      terminal.value.scrollToBottom()
+      if (shouldAutoScrollAfterTerminalWrite(terminal.value)) {
+        terminal.value.scrollToBottom()
+      }
       terminal.value.focus()
     }
   }

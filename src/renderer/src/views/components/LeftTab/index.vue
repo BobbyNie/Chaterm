@@ -2,7 +2,7 @@
   <div class="term_left_tab">
     <div class="main-menu">
       <a-tooltip
-        v-for="i in menuTabsData.slice(0, -1)"
+        v-for="i in visibleMainMenuTabs"
         :key="i.key"
         :title="$t(i.nameKey)"
         placement="right"
@@ -144,19 +144,27 @@
 <script setup lang="ts">
 const emit = defineEmits(['toggle-menu', 'open-user-tab'])
 import { menuTabsData } from './constants/data'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { userInfoStore } from '@/store/index'
 import { pinia } from '@/main'
 import eventBus from '@/utils/eventBus'
 import { convertFileLocalResourceSrc } from '@/utils/convertFileLocalResourceSrc'
+
 const logger = createRendererLogger('leftTab')
 let removePluginMetadataListener: (() => void) | null = null
 const pluginViews = ref<any[]>([])
+const kbSearchPolicyEnabled =
+  String(import.meta.env.RENDERER_KB_SEARCH_ENABLED || '')
+    .trim()
+    .toLowerCase() !== 'false'
+// Intranet: exclude setting tab from main menu (no user tab in menuTabsData)
+const visibleMainMenuTabs = computed(() => menuTabsData.slice(0, -1).filter((tab) => kbSearchPolicyEnabled || tab.key !== 'knowledgecenter'))
 
 /** file:// URLs cannot be used in img src in the renderer; map via custom protocol (see main process). */
 const pluginViewIconSrc = (icon: string) => convertFileLocalResourceSrc(icon)
 const userStore = userInfoStore(pinia)
 const activeKey = ref('workspace')
+
 const menuClick = (key) => {
   let type = ''
   let beforeActive = ''
@@ -218,6 +226,7 @@ const openAiRight = () => {
     beforeActive
   })
 }
+
 const userConfig = () => {
   emit('open-user-tab', 'userConfig')
 }

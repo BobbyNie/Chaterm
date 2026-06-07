@@ -198,6 +198,14 @@ const insertCommand = async (data: { command: string; ip: string }) => {
   }
 }
 
+const queryFigSpec = async (data: { commandLine: string; tokens: string[] }) => {
+  try {
+    return await ipcRenderer.invoke('query-fig-spec', data)
+  } catch (error) {
+    return []
+  }
+}
+
 const aiSuggestCommand = async (data: { command: string; osInfo?: string }): Promise<{ command: string; explanation: string } | null> => {
   try {
     const result = await ipcRenderer.invoke('ai-suggest-command', data)
@@ -254,6 +262,15 @@ const updateLocalAsseFavorite = async (data: { uuid: string; status: number }) =
 const getKeyChainSelect = async () => {
   try {
     const result = await ipcRenderer.invoke('key-chain-local-get')
+    return result
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+const getPasswordChainSelect = async () => {
+  try {
+    const result = await ipcRenderer.invoke('password-chain-local-get')
     return result
   } catch (error) {
     return Promise.reject(error)
@@ -896,12 +913,14 @@ const api = {
   getPlatform,
   queryCommand,
   insertCommand,
+  queryFigSpec,
   aiSuggestCommand,
   getLocalAssetRoute,
   recordConnection,
   updateLocalAssetLabel,
   updateLocalAsseFavorite,
   getKeyChainSelect,
+  getPasswordChainSelect,
   getKeyChainList,
   getAssetGroup,
   dbAssetList,
@@ -986,6 +1005,7 @@ const api = {
   openBrowserWindow: (url: string): void => {
     ipcRenderer.send('open-browser-window', url)
   },
+  openExternalUrl: (url: string): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke('open-external-url', url),
   onUrlChange: (callback: (url: string) => void): void => {
     ipcRenderer.on('url-changed', (_event, url) => callback(url))
   },
@@ -1378,8 +1398,15 @@ const api = {
   removeKey: (opts: { keyId: string }) => ipcRenderer.invoke('ssh:agent:remove-key', opts),
   listKeys: () => ipcRenderer.invoke('ssh:agent:list-key') as Promise<[]>,
 
-  connectLocal: (config: { id: string; shell?: string; cwd?: string; env?: Record<string, string>; cols?: number; rows?: number }) =>
-    ipcRenderer.invoke('local:connect', config),
+  connectLocal: (config: {
+    id: string
+    shell?: string
+    cwd?: string
+    env?: Record<string, string>
+    cols?: number
+    rows?: number
+    startupMode?: 'interactive' | 'fast'
+  }) => ipcRenderer.invoke('local:connect', config),
   sendDataLocal: (terminalId: string, data: string) => ipcRenderer.invoke('local:send:data', terminalId, data),
   resizeLocal: (terminalId: string, cols: number, rows: number) => ipcRenderer.invoke('local:resize', terminalId, cols, rows),
   closeLocal: (terminalId: string) => ipcRenderer.invoke('local:close', terminalId),
