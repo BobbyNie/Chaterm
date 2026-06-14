@@ -15,6 +15,19 @@ interface Cookie {
   value: string
 }
 
+export interface BrandingConfig {
+  enabled: boolean
+  displayName: string
+  productNameZh?: string
+  productNameEn?: string
+  logoUrl?: string
+  logoLightUrl?: string
+  logoDarkUrl?: string
+  iconPngPath?: string
+  iconIcoPath?: string
+  iconIcnsPath?: string
+}
+
 // ============================================================================
 // Database Asset Types
 // ============================================================================
@@ -311,6 +324,7 @@ interface ApiType {
   getLocalIP: () => Promise<string>
   getMacAddress: () => Promise<string>
   getPlatform: () => Promise<string>
+  getBrandingConfig: () => Promise<BrandingConfig>
   downloadPluginPackage: (url: string) => Promise<ArrayBuffer>
   installPluginFromUrl: (payload: { pluginId: string; version?: string; fileName?: string; url: string; sha256?: string }) => Promise<any>
   cancelPluginInstall: (pluginId: string) => Promise<{ ok: boolean }>
@@ -1153,6 +1167,7 @@ interface ApiType {
    */
   getPerfTimeline: () => Promise<{
     main: { process: string; marks: Array<{ name: string; offset: number; timestamp: number }> }
+    preload: { process: string; marks: Array<{ name: string; offset: number; timestamp: number }> } | null
     renderer: { process: string; marks: Array<{ name: string; offset: number; timestamp: number }> } | null
   }>
 

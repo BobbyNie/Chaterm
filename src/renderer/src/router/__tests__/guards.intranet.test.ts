@@ -318,6 +318,18 @@ describe('Router Guards - Intranet Edition', () => {
       expect(mockSetUserInfo).toHaveBeenCalled()
       expect(mockNext).toHaveBeenCalledWith('/')
     })
+
+    it('should redirect to login when auto-skip fails with no token', async () => {
+      const mockNext = vi.fn()
+      mockLocalStorage.getItem.mockReturnValue(null)
+      mockWindowApi.initUserDatabase.mockResolvedValue({ success: false })
+
+      await routerBeforeEach({ path: '/workspace' }, {} as any, mockNext)
+
+      // autoSkipLogin attempted but DB init failed, redirect to login page
+      expect(mockSetUserInfo).toHaveBeenCalled()
+      expect(mockNext).toHaveBeenCalledWith('/login')
+    })
   })
 
   describe('Manual /login access', () => {
