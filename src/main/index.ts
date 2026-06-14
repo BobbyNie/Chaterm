@@ -73,7 +73,7 @@ import {
 import { getPluginDetailsByName, getLocalizedStrings, getUserLanguage } from './plugin/pluginDetails'
 import { capabilityRegistry } from './ssh/capabilityRegistry'
 import { getActualTheme, loadUserTheme } from './themeManager'
-import { getLoginBaseUrl, getEdition, getProtocolPrefix, getProtocolName } from './config/edition'
+import { getLoginBaseUrl, getEdition, getProtocolPrefix, getProtocolName, isGlobalEdition } from './config/edition'
 import { getBrandingConfig } from './config/branding'
 import { TelemetrySetting } from '@shared/TelemetrySetting'
 import { registerKnowledgeBaseHandlers, initKbSearchManager, closeKbSearchManager } from './services/knowledgebase'
@@ -87,6 +87,16 @@ import { initLogging, logRendererCrash } from '@logging'
 import { parseXshellWakeupFromArgv, redactXshellWakeupForLog, type XshellWakeupPayload } from './integrations/xshellWakeup'
 
 const logger = createLogger('main')
+
+// Intranet edition: hard-disable all cloud-dependent features at runtime.
+// These env vars are read by the data-sync, telemetry, and KB-search handlers below
+// (see parsePolicyEnabled). The intranet (cn) edition has no cloud services, so they
+// must stay off regardless of any persisted user preference or upstream default.
+if (!isGlobalEdition()) {
+  process.env.CHATERM_DATA_SYNC_ENABLED = 'false'
+  process.env.CHATERM_TELEMETRY_ENABLED = 'false'
+  process.env.CHATERM_KB_SEARCH_ENABLED = 'false'
+}
 
 const getPluginUninstallErrorCode = (error: unknown): string => {
   const message = String(error instanceof Error ? error.message : error || '')
@@ -434,7 +444,10 @@ app.whenReady().then(async () => {
   mark('chaterm/main/didRegisterSSH')
 
   mark('chaterm/main/willRegisterUpdater')
-  registerUpdater(mainWindow, (value) => (forceQuit = value))
+  // Intranet edition: never register the auto-updater (no external update server).
+  if (isGlobalEdition()) {
+    registerUpdater(mainWindow, (value) => (forceQuit = value))
+  }
   mark('chaterm/main/didRegisterUpdater')
 
   mark('chaterm/main/willSetupPluginIpc')
@@ -1755,6 +1768,10 @@ function setupIPC(): void {
   // ==================== Chat Sync V2 IPC Handlers ====================
 
   ipcMain.handle('chat-sync:set-enabled', async (_evt, enabled: boolean) => {
+    // Intranet edition: chat sync needs an external sync server; never enable it.
+    if (!isGlobalEdition()) {
+      return { success: true }
+    }
     try {
       if (enabled) {
         if (!chatSyncScheduler) {

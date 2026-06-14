@@ -1,5 +1,6 @@
 <template>
   <a-tooltip
+    v-if="isGlobalEdition()"
     :title="isRecording ? $t('ai.stopRecording') : $t('ai.startVoiceInput')"
     placement="top"
   >
@@ -30,7 +31,7 @@
 import { ref, onUnmounted } from 'vue'
 import { notification } from 'ant-design-vue'
 import { useI18n } from 'vue-i18n'
-import { getSpeechWsUrl } from '@/utils/edition'
+import { getSpeechWsUrl, isGlobalEdition } from '@/utils/edition'
 
 const logger = createRendererLogger('ai.voice.realtime')
 

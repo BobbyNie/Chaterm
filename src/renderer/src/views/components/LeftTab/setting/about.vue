@@ -22,7 +22,10 @@
       <div v-else>
         <div class="about-title">{{ brandingConfig.displayName }}</div>
         <div class="about-description">{{ t('about.version') }} {{ appInfo.version }}</div>
-        <div class="about-update-btn-wrapper">
+        <div
+          v-show="isGlobalEdition()"
+          class="about-update-btn-wrapper"
+        >
           <button
             class="about-update-btn"
             :disabled="btnDisabled"
@@ -74,6 +77,7 @@ import { Notice } from '../../Notice'
 import { FolderOpenOutlined, CommentOutlined, ExportOutlined } from '@ant-design/icons-vue'
 import i18n from '@/locales'
 import { getDefaultBrandingConfig, loadBrandingConfig } from '@/utils/branding'
+import { isGlobalEdition } from '@/utils/edition'
 
 const { t } = i18n.global
 const logger = createRendererLogger('settings.about')

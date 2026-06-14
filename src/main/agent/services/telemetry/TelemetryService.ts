@@ -97,8 +97,8 @@ class PostHogClient {
 
   /** Singleton instance of the PostHogClient */
   private static instance: PostHogClient
-  /** PostHog client instance for sending analytics events */
-  private client: PostHog
+  /** PostHog client instance for sending analytics events (null in the intranet edition) */
+  private client: PostHog | null = null
   /** Unique identifier for the current user */
   private distinctId: string = generatePersistentMachineId()
   /** Whether telemetry is currently enabled based on user  */
@@ -111,9 +111,15 @@ class PostHogClient {
    * Initializes PostHog client with configuration
    */
   private constructor() {
-    this.client = new PostHog('phc_soaFIGBpywruW8dckk93xUs0FGn2otNi5CUkEbd2a4U', {
-      host: 'https://us.i.posthog.com'
-    })
+    // Intranet (cn) edition has no analytics backend: never instantiate PostHog.
+    // capture()/updateTelemetryState()/shutdown() all no-op when client is null.
+    if (isGlobalEdition()) {
+      this.client = new PostHog('phc_soaFIGBpywruW8dckk93xUs0FGn2otNi5CUkEbd2a4U', {
+        host: 'https://us.i.posthog.com'
+      })
+    } else {
+      this.client = null
+    }
   }
 
   /**
@@ -123,6 +129,11 @@ class PostHogClient {
     this.telemetryEnabled = false
 
     this.telemetryEnabled = didUserOptIn
+
+    // No PostHog client in the intranet edition; nothing to opt in/out.
+    if (!this.client) {
+      return
+    }
 
     // Update PostHog client state based on telemetry preference
     if (this.telemetryEnabled) {
@@ -151,7 +162,7 @@ class PostHogClient {
    * @param event The event to capture with its properties
    */
   public capture(event: { event: string; properties?: any }): void {
-    if (this.telemetryEnabled && isGlobalEdition()) {
+    if (this.telemetryEnabled && isGlobalEdition() && this.client) {
       const propertiesWithVersion = {
         ...event.properties,
         extension_version: this.version,
@@ -574,7 +585,9 @@ class PostHogClient {
   }
 
   public async shutdown(): Promise<void> {
-    await this.client.shutdown()
+    if (this.client) {
+      await this.client.shutdown()
+    }
   }
 }
 /**

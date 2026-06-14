@@ -91,7 +91,8 @@ const mockEditionConfig: {
 
 vi.mock('@/utils/edition', () => {
   return {
-    getEditionConfig: () => mockEditionConfig
+    getEditionConfig: () => mockEditionConfig,
+    isGlobalEdition: () => mockEditionConfig.edition === 'global'
   }
 })
 

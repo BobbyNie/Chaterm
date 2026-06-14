@@ -11,10 +11,7 @@ extraResources:
     to: 'edition-config/'
     filter: '**/*.json'
 
-publish:
-  provider: generic
-  url: https://static-download8.chaterm.net/
-  channel: latest
+# publish: removed for the intranet edition (no external update server; CI publishes via GitHub Release).
 
 win:
   executableName: Chaterm CN

@@ -353,8 +353,9 @@
           </div>
         </a-card>
 
-        <!-- DeepSeek Configuration -->
+        <!-- DeepSeek Configuration (hidden in intranet edition: hardcoded external endpoint) -->
         <a-card
+          v-if="isGlobalEdition()"
           class="settings-section"
           :bordered="false"
         >
@@ -559,6 +560,7 @@ import { notification } from 'ant-design-vue'
 import { LockOutlined } from '@ant-design/icons-vue'
 import { updateGlobalState, getGlobalState, getSecret, storeSecret, getAllExtensionState } from '@renderer/agent/storage/state'
 import eventBus from '@/utils/eventBus'
+import { isGlobalEdition } from '@/utils/edition'
 import i18n from '@/locales'
 import { getUser } from '@api/user/user'
 import {

@@ -28,6 +28,29 @@ Chaterm is an Electron-based AI-driven terminal tool that provides intelligent c
 - `src/renderer/src/views/components/AiTab/index.vue` - Removed login prompt
 - `.github/workflows/build.yml` - CI/CD pipeline for builds
 
+### Runtime External Network Isolation (Intranet Edition)
+
+The intranet edition must NEVER connect to external network resources at runtime. The only permitted outbound traffic is to user-configured intranet compute endpoints. This constraint is enforced at the source and verified automatically.
+
+- **No external runtime connections**: The app must not reach any CDN, remote API, telemetry service, auto-updater, cloud sync, voice ASR, or KMS at runtime. Permitted endpoints are limited to user-configured OpenAI-compatible, Anthropic-compatible, Ollama, and LiteLLM intranet addresses.
+- **Runtime-loaded resources must be bundled at build time**: Monaco workers (`?worker`), xterm/addons, fonts, icons, and wasm are all locally bundled (already in place). Do not introduce CDN references, remote `@font-face`, remote `<script>/<link>`, or remote dynamic `import()`.
+- **Review before adding any external dependency**: Any new external URL, remote script, third-party reporting, or hardcoded external endpoint must be confirmed inert or disabled for the cn edition, and must pass `scripts/post-sync-verify.sh` and `src/main/__tests__/verify-intranet-isolation.test.ts`.
+- **Configuration source of truth**: All edition URLs live only in `build/edition-config/cn.json` and `build/.env.*.cn`. For the intranet edition these fields MUST stay empty strings.
+- **Runtime lock-down**: Cloud features are force-disabled at startup in `src/main/index.ts` via `CHATERM_DATA_SYNC_ENABLED` / `CHATERM_TELEMETRY_ENABLED` / `CHATERM_KB_SEARCH_ENABLED` for the cn edition; the auto-updater and chat-sync are gated to the global edition; PostHog is not instantiated.
+- **Verification gates**: `./scripts/post-sync-verify.sh` (including the `verify_external_isolation` section) and `src/main/__tests__/verify-intranet-*.test.ts` are the regression gates for intranet isolation. They must stay green after every upstream sync.
+
+**Additional files modified for runtime network isolation:**
+
+- `src/main/index.ts` - Hard-disable cloud features for cn edition; gate auto-updater and chat-sync to global edition
+- `src/main/agent/services/telemetry/TelemetryService.ts` - PostHog client nullable, not instantiated for cn edition
+- `build/edition-config/cn.json`, `build/.env.production.cn`, `build/.env.development.cn` - All cloud URLs emptied
+- `src/renderer/src/views/components/LeftTab/setting/about.vue` - Hide check-update button for cn edition
+- `src/renderer/src/views/components/LeftTab/setting/model.vue` - Hide DeepSeek provider card for cn edition
+- `src/renderer/src/views/components/AiTab/components/voice/voiceInputRealTime.vue` - Hide voice input for cn edition
+- `electron-builder.yml`, `electron-builder.cn.yml` - Removed external publish URLs
+- `scripts/post-sync-verify.sh` - Added `verify_external_isolation` section
+- `src/main/__tests__/verify-intranet-isolation.test.ts` - New runtime isolation test suite
+
 **Tech Stack:**
 
 - **Frontend Framework:** Vue 3 + TypeScript + Pinia + Vue Router + Vue I18n

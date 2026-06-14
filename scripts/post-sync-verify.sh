@@ -114,6 +114,31 @@ check_file_not_contains() {
     fi
 }
 
+# Function to check that a file does NOT contain any of several external domains.
+# Uses ERE alternation (grep -E) for portability across GNU and BSD grep.
+check_file_contains_no_domain() {
+    local file="$1"
+    local description="$2"
+    shift 2
+
+    log_check "$description"
+
+    if [ ! -f "$PROJECT_ROOT/$file" ]; then
+        record_result "fail" "File not found: $file"
+        return 1
+    fi
+
+    local pattern
+    pattern=$(IFS='|'; echo "$*")
+    if grep -Eq "$pattern" "$PROJECT_ROOT/$file"; then
+        record_result "fail" "$description - External domain found in $file"
+        return 1
+    else
+        record_result "pass" "$description"
+        return 0
+    fi
+}
+
 # Function to check guards.ts for login skip logic
 verify_login_skip() {
     print_section "Verifying Login Skip Logic"
@@ -241,6 +266,52 @@ verify_claude_md() {
 
     # Check for key modifications section
     check_file_content "$file" "Key Files Modified for Intranet Use" "Modified files documentation"
+}
+
+# Function to verify runtime external network isolation (intranet edition).
+# Ensures the app never reaches out to external cloud services at runtime:
+# config URLs are empty, cloud features are hard-disabled, and the auto-updater
+# is gated to the global edition.
+verify_external_isolation() {
+    print_section "Verifying Runtime External Network Isolation"
+
+    # Edition config and env files must not reference external cloud domains.
+    check_file_contains_no_domain "build/edition-config/cn.json" \
+        "cn.json has no external cloud domains" \
+        "chaterm\.net" "chaterm\.cn" "deepseek\.com" "i\.posthog\.com" "intsig\.net"
+    check_file_contains_no_domain "build/.env.production.cn" \
+        ".env.production.cn has no external cloud domains" \
+        "chaterm\.net" "chaterm\.cn" "deepseek\.com" "i\.posthog\.com"
+    check_file_contains_no_domain "build/.env.development.cn" \
+        ".env.development.cn has no external cloud domains" \
+        "chaterm\.net" "chaterm\.cn" "deepseek\.com" "i\.posthog\.com"
+
+    # electron-builder publish must not point to an external update server.
+    check_file_not_contains "electron-builder.cn.yml" "static-download8.chaterm.net" \
+        "electron-builder.cn.yml has no external publish URL"
+    check_file_not_contains "electron-builder.yml" "chaterm-static.intsig.net" \
+        "electron-builder.yml has no external publish URL"
+
+    # Cloud features must be hard-disabled for the intranet edition in index.ts.
+    check_file_content "src/main/index.ts" "CHATERM_DATA_SYNC_ENABLED = 'false'" \
+        "Data sync hard-disabled for intranet edition"
+    check_file_content "src/main/index.ts" "CHATERM_TELEMETRY_ENABLED = 'false'" \
+        "Telemetry hard-disabled for intranet edition"
+    check_file_content "src/main/index.ts" "CHATERM_KB_SEARCH_ENABLED = 'false'" \
+        "KB search hard-disabled for intranet edition"
+
+    # auto-updater must only be registered for the global edition.
+    check_file_content "src/main/index.ts" "never register the auto-updater" \
+        "auto-updater gated to global edition"
+
+    # chat-sync must short-circuit for the intranet edition.
+    check_file_content "src/main/index.ts" "chat sync needs an external sync server" \
+        "chat-sync short-circuited for intranet edition"
+
+    # PostHog client must not be instantiated for the intranet edition.
+    check_file_content "src/main/agent/services/telemetry/TelemetryService.ts" \
+        "private client: PostHog | null = null" \
+        "PostHog client nullable (not instantiated in intranet edition)"
 }
 
 # Function to run test suite
@@ -376,6 +447,7 @@ main() {
     verify_ai_tab_changes
     verify_cicd_workflow
     verify_claude_md
+    verify_external_isolation
     run_test_suite
     verify_app_starts
 
